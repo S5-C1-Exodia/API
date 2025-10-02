@@ -1,0 +1,185 @@
+﻿using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using API.DTO;
+using API.Errors;
+using Api.Managers.InterfacesHelpers;
+using API.Managers.InterfacesServices;
+
+namespace API.Helpers;
+
+public class SpotifyOAuthHelper(
+    IHttpClientFactory httpClientFactory,
+    IConfigService config,
+    IClockService clock,
+    IAuditService audit)
+    : ISpotifyOAuthHelper
+{
+    private readonly IHttpClientFactory _httpClientFactory =
+        httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+
+    private readonly IConfigService _config = config ?? throw new ArgumentNullException(nameof(config));
+    private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+
+    private readonly IAuditService
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit)); // optionnel (hook Sprint 1+)
+
+    public async Task<TokenInfo> ExchangeCodeForTokensAsync(string code, string redirectUri, string codeVerifier)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            throw new ArgumentException("code cannot be null or empty.", nameof(code));
+        if (string.IsNullOrWhiteSpace(redirectUri))
+            throw new ArgumentException("redirectUri cannot be null or empty.", nameof(redirectUri));
+        if (string.IsNullOrWhiteSpace(codeVerifier))
+            throw new ArgumentException("codeVerifier cannot be null or empty.", nameof(codeVerifier));
+
+
+        string tokenEndpoint = this._config.GetSpotifyTokenEndpoint();
+        string clientId = this._config.GetSpotifyClientId();
+
+        // ---- 1) POST /api/token (authorization_code + PKCE) ----
+        HttpClient http = this._httpClientFactory.CreateClient("spotify-oauth");
+        HttpRequestMessage req = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint);
+
+        string body = "grant_type=authorization_code"
+                      + "&code=" + Uri.EscapeDataString(code)
+                      + "&redirect_uri=" + Uri.EscapeDataString(redirectUri)
+                      + "&client_id=" + Uri.EscapeDataString(clientId)
+                      + "&code_verifier=" + Uri.EscapeDataString(codeVerifier);
+
+        req.Content = new StringContent(body, Encoding.UTF8, "application/x-www-form-urlencoded");
+
+        HttpResponseMessage resp;
+        try
+        {
+            resp = await http.SendAsync(req);
+        }
+        catch (Exception ex)
+        {
+            this._audit.LogAuth("spotify", "TokenExchange.NetworkError", ex.Message);
+            throw new TokenExchangeFailedException("Network error during token exchange.", ex);
+        }
+
+        string payload = await resp.Content.ReadAsStringAsync();
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            // Erreurs Spotify typiques: invalid_grant, invalid_client (si secret requis par erreur), rate limit, etc.
+            string detail = "HTTP " + ((int)resp.StatusCode).ToString() + " payload: " + payload;
+            this._audit.LogAuth("spotify", "TokenExchange.HttpError", detail);
+
+            // 400 invalid_grant → code invalide/expiré
+            if ((int)resp.StatusCode == 400)
+                throw new TokenExchangeFailedException("Invalid authorization code or PKCE verifier.");
+
+            // 429 rate limit
+            if ((int)resp.StatusCode == 429)
+                throw new TokenExchangeFailedException("Rate limited by Spotify during token exchange.");
+
+            throw new TokenExchangeFailedException("Spotify token endpoint returned an error.");
+        }
+
+        // Parse JSON
+        // Example response: { "access_token":"...", "token_type":"Bearer", "scope":"...", "expires_in":3600, "refresh_token":"..." }
+        JsonDocument doc;
+        try
+        {
+            doc = JsonDocument.Parse(payload);
+        }
+        catch (Exception ex)
+        {
+            this._audit.LogAuth("spotify", "TokenExchange.ParseError", ex.Message);
+            throw new TokenExchangeFailedException("Failed to parse token response.", ex);
+        }
+
+        string accessToken = this.ReadString(doc, "access_token");
+        string refreshToken = this.ReadString(
+            doc,
+            "refresh_token"
+        ); // Peut être absent si Spotify ne le renvoie pas (cas rarissime)
+        string scope = this.ReadString(doc, "scope");
+        int expiresIn = this.ReadInt(doc, "expires_in", 3600);
+
+        if (string.IsNullOrWhiteSpace(accessToken))
+            throw new TokenExchangeFailedException("Token response missing access_token.");
+
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            // Par prudence, on refuse car notre flux persiste le refresh token
+            throw new TokenExchangeFailedException("Token response missing refresh_token.");
+
+        DateTime now = this._clock.GetUtcNow();
+        // Petite marge de sécurité (60s)
+        DateTime accessExpiresAt = now.AddSeconds(expiresIn > 60 ? expiresIn - 60 : expiresIn);
+
+        // ---- 2) GET /v1/me pour obtenir ProviderUserId ----
+        string meEndpoint = "https://api.spotify.com/v1/me";
+        HttpRequestMessage meReq = new HttpRequestMessage(HttpMethod.Get, meEndpoint);
+        meReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        HttpResponseMessage meResp;
+        try
+        {
+            meResp = await http.SendAsync(meReq);
+        }
+        catch (Exception ex)
+        {
+            this._audit.LogAuth("spotify", "Me.NetworkError", ex.Message);
+            throw new TokenExchangeFailedException("Network error fetching Spotify profile.", ex);
+        }
+
+        string mePayload = await meResp.Content.ReadAsStringAsync();
+
+        if (!meResp.IsSuccessStatusCode)
+        {
+            string detail = "HTTP " + ((int)meResp.StatusCode).ToString() + " payload: " + mePayload;
+            this._audit.LogAuth("spotify", "Me.HttpError", detail);
+            throw new TokenExchangeFailedException("Failed to fetch Spotify user profile.");
+        }
+
+        JsonDocument meDoc;
+        try
+        {
+            meDoc = JsonDocument.Parse(mePayload);
+        }
+        catch (Exception ex)
+        {
+            this._audit.LogAuth("spotify", "Me.ParseError", ex.Message);
+            throw new TokenExchangeFailedException("Failed to parse Spotify user profile.", ex);
+        }
+
+        string providerUserId = this.ReadString(meDoc, "id");
+        if (string.IsNullOrWhiteSpace(providerUserId))
+            throw new TokenExchangeFailedException("Spotify profile missing id.");
+
+        // Build TokenInfo DTO
+        TokenInfo tokenInfo = new TokenInfo(accessToken, refreshToken, accessExpiresAt, scope, providerUserId);
+
+        // Audit succès
+        this._audit.LogAuth("spotify", "AuthSuccess", "UserId=" + providerUserId);
+
+        return tokenInfo;
+    }
+
+    private string ReadString(JsonDocument doc, string property)
+    {
+        if (doc == null) return string.Empty;
+        if (!doc.RootElement.TryGetProperty(property, out JsonElement el)) return string.Empty;
+        if (el.ValueKind == JsonValueKind.String) return el.GetString() ?? string.Empty;
+        return el.ToString();
+    }
+
+    private int ReadInt(JsonDocument doc, string property, int defaultValue)
+    {
+        if (doc == null) return defaultValue;
+        if (!doc.RootElement.TryGetProperty(property, out JsonElement el)) return defaultValue;
+
+        if (el.ValueKind == JsonValueKind.Number)
+        {
+            int value;
+            bool ok = el.TryGetInt32(out value);
+            if (ok) return value;
+        }
+
+        return defaultValue;
+    }
+}
