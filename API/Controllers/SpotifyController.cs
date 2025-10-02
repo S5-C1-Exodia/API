@@ -3,17 +3,14 @@
 namespace API.Controllers;
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using API.DTO;
-using API.Errors;
-using API.Managers;
+using DTO;
+using Errors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/spotify")]
 public class SpotifyController(IAuthManager authManager) : ControllerBase
 {
     private readonly IAuthManager _authManager = authManager ?? throw new ArgumentNullException(nameof(authManager));
@@ -27,22 +24,22 @@ public class SpotifyController(IAuthManager authManager) : ControllerBase
     {
         if (request == null)
         {
-            return this.BadRequest("Body is required.");
+            return BadRequest("Body is required.");
         }
 
         try
         {
-            AuthStartResponseDto response = await this._authManager.StartAuthAsync(request.Scopes);
-            return this.Ok(response);
+            AuthStartResponseDto response = await _authManager.StartAuthAsync(request.Scopes);
+            return Ok(response);
         }
         catch (ArgumentException ex)
         {
-            return this.BadRequest(ex.Message);
+            return BadRequest(ex.Message);
         }
         catch (Exception)
         {
             // Option: logger ici, ou laisser un middleware global gérer
-            return this.StatusCode(500, "Unexpected error.");
+            return StatusCode(500, "Unexpected error.");
         }
     }
 
@@ -58,7 +55,7 @@ public class SpotifyController(IAuthManager authManager) : ControllerBase
         // Récupération du deviceInfo: priorité à l'en-tête X-Device-Info, sinon query "device"
         string deviceInfo = device ?? string.Empty;
         StringValues headerValues;
-        bool hasHeader = this.Request.Headers.TryGetValue("X-Device-Info", out headerValues);
+        bool hasHeader = Request.Headers.TryGetValue("X-Device-Info", out headerValues);
         if (hasHeader)
         {
             string headerDevice = headerValues.ToString();
@@ -70,29 +67,29 @@ public class SpotifyController(IAuthManager authManager) : ControllerBase
 
         try
         {
-            string deeplink = await this._authManager.HandleCallbackAsync(code, state, deviceInfo);
+            string deeplink = await _authManager.HandleCallbackAsync(code, state, deviceInfo);
 
             // Redirection 302 par défaut vers le deeplink de l'app mobile
-            return this.Redirect(deeplink);
+            return Redirect(deeplink);
         }
         catch (InvalidStateException ex)
         {
             // state inconnu/expiré → 400
-            return this.BadRequest(ex.Message);
+            return BadRequest(ex.Message);
         }
         catch (TokenExchangeFailedException)
         {
             // Problème d'échange token (réseau / code invalide) → 502
-            return this.StatusCode(502, "Token exchange failed.");
+            return StatusCode(502, "Token exchange failed.");
         }
         catch (ArgumentException ex)
         {
-            return this.BadRequest(ex.Message);
+            return BadRequest(ex.Message);
         }
         catch (Exception)
         {
             // Option: logger ici, ou middleware global
-            return this.StatusCode(500, "Unexpected error.");
+            return StatusCode(500, "Unexpected error.");
         }
     }
 }
