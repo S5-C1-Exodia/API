@@ -2,8 +2,14 @@
 
 namespace Tests.Services
 {
+    /// <summary>
+    /// Unit tests for <see cref="ConfigService"/>.
+    /// </summary>
     public class ConfigServiceTests
     {
+        /// <summary>
+        /// Tests that the getters of <see cref="ConfigService"/> return the values provided to the constructor.
+        /// </summary>
         [Fact]
         public void Getters_ShouldReturnConstructorValues()
         {
@@ -26,6 +32,9 @@ namespace Tests.Services
             Assert.Equal(60, cfg.GetSessionTtlMinutes());
         }
 
+        /// <summary>
+        /// Tests that the <see cref="ConfigService"/> constructor throws an <see cref="ArgumentException"/> for invalid arguments.
+        /// </summary>
         [Fact]
         public void Constructor_ShouldThrow_OnInvalidArgs()
         {

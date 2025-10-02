@@ -3,8 +3,14 @@ using API.Services;
 
 namespace Tests.Services
 {
+    /// <summary>
+    /// Unit tests for <see cref="IdGenerator"/>.
+    /// </summary>
     public class IdGeneratorTests
     {
+        /// <summary>
+        /// Tests that <see cref="IdGenerator.NewSessionId"/> generates a 32-character hexadecimal string without dashes.
+        /// </summary>
         [Fact]
         public void NewSessionId_ShouldBe32Hex_NoDashes()
         {

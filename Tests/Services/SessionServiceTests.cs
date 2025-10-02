@@ -6,8 +6,15 @@ using Moq;
 
 namespace Tests.Services
 {
+    /// <summary>
+    /// Unit tests for <see cref="SessionService"/>.
+    /// </summary>
     public class SessionServiceTests
     {
+        /// <summary>
+        /// Tests that <see cref="SessionService.CreateSessionAsync(string, DateTime, DateTime)"/> inserts a session with the expected fields and returns the session ID.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task CreateSessionAsync_ShouldInsert_WithExpectedFields_AndReturnSessionId()
         {
@@ -40,6 +47,10 @@ namespace Tests.Services
             dao.Verify(d => d.InsertAsync(It.IsAny<AppSession>()), Times.Once);
         }
 
+        /// <summary>
+        /// Tests that <see cref="SessionService.GetSessionAsync(string)"/> retrieves a session from the DAO.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task GetSessionAsync_ShouldReturnFromDao()
         {

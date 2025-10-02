@@ -8,8 +8,15 @@ using Moq;
 
 namespace Tests.Helpers
 {
+    /// <summary>
+    /// Unit tests for <see cref="SpotifyOAuthHelper"/>.
+    /// </summary>
     public class SpotifyOAuthHelperTests
     {
+        /// <summary>
+        /// Tests that <see cref="SpotifyOAuthHelper.ExchangeCodeForTokensAsync"/> returns a valid <see cref="TokenInfo"/> on success.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task ExchangeCodeForTokensAsync_ShouldReturnTokenInfo_OnSuccess()
         {
@@ -62,6 +69,11 @@ namespace Tests.Helpers
             Assert.True(info.AccessExpiresAt > clock.Object.GetUtcNow());
         }
 
+        /// <summary>
+        /// Tests that <see cref="SpotifyOAuthHelper.ExchangeCodeForTokensAsync"/> throws a <see cref="TokenExchangeFailedException"/>
+        /// when the token endpoint returns a 400 status code.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task ExchangeCodeForTokensAsync_ShouldThrow_OnTokenEndpoint400()
         {
@@ -95,6 +107,11 @@ namespace Tests.Helpers
             );
         }
 
+        /// <summary>
+        /// Tests that <see cref="SpotifyOAuthHelper.ExchangeCodeForTokensAsync"/> throws a <see cref="TokenExchangeFailedException"/>
+        /// when the token endpoint response is missing a refresh token.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task ExchangeCodeForTokensAsync_ShouldThrow_OnMissingRefreshToken()
         {
@@ -133,6 +150,11 @@ namespace Tests.Helpers
             );
         }
 
+        /// <summary>
+        /// Tests that <see cref="SpotifyOAuthHelper.ExchangeCodeForTokensAsync"/> throws a <see cref="TokenExchangeFailedException"/>
+        /// when the profile endpoint returns an error.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
         public async Task ExchangeCodeForTokensAsync_ShouldThrow_OnProfileError()
         {
@@ -178,10 +200,18 @@ namespace Tests.Helpers
             );
         }
 
+        /// <summary>
+        /// A fake HTTP message handler for simulating HTTP responses in tests.
+        /// </summary>
         private sealed class FakeHandler : HttpMessageHandler
         {
             private readonly Queue<HttpResponseMessage> _responses;
 
+            /// <summary>
+            /// Initializes a new instance of the <see cref="FakeHandler"/> class.
+            /// </summary>
+            /// <param name="responses">A queue of HTTP responses to return.</param>
+            /// <exception cref="ArgumentNullException">Thrown if <paramref name="responses"/> is null.</exception>
             public FakeHandler(Queue<HttpResponseMessage> responses)
             {
                 if (responses == null)
@@ -192,6 +222,12 @@ namespace Tests.Helpers
                 this._responses = responses;
             }
 
+            /// <summary>
+            /// Sends an HTTP request and returns a queued response.
+            /// </summary>
+            /// <param name="request">The HTTP request message.</param>
+            /// <param name="cancellationToken">A cancellation token.</param>
+            /// <returns>A <see cref="Task"/> containing the next queued <see cref="HttpResponseMessage"/>.</returns>
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
                 CancellationToken cancellationToken)
             {

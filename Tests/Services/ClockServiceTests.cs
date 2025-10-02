@@ -2,8 +2,14 @@
 
 namespace Tests.Services
 {
+    /// <summary>
+    /// Unit tests for <see cref="ClockService"/>.
+    /// </summary>
     public class ClockServiceTests
     {
+        /// <summary>
+        /// Tests that <see cref="ClockService.GetUtcNow"/> returns a value close to <see cref="DateTime.UtcNow"/>.
+        /// </summary>
         [Fact]
         public void GetUtcNow_ShouldBeCloseToSystemUtcNow()
         {

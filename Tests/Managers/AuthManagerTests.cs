@@ -10,6 +10,9 @@ using Moq;
 
 namespace Tests.Managers
 {
+    /// <summary>
+    /// Unit tests for <see cref="AuthManager"/>.
+    /// </summary>
     public class AuthManagerTests
     {
         private readonly Mock<ICryptoHelper> _crypto;
@@ -53,8 +56,20 @@ namespace Tests.Managers
             _config.Setup(c => c.GetSpotifyRedirectUri()).Returns("https://cb");
         }
 
+        /// <summary>
+        /// Delegate used to mock the GeneratePkce method.
+        /// </summary>
+        /// <param name="verifier">The generated code verifier (output).</param>
+        /// <param name="challenge">The generated code challenge (output).</param>
         private delegate void GeneratePkceCallback(out string verifier, out string challenge);
 
+        /// <summary>
+        /// Tests that <see cref="AuthManager.StartAuthAsync(System.Collections.Generic.IList{string})"/>
+        /// generates a state, saves the PKCE entry, and returns the correct URL.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="Task"/> representing the asynchronous operation.
+        /// </returns>
         [Fact]
         public async Task StartAuthAsync_ShouldGenerateState_AndSavePkce_AndReturnUrl()
         {
@@ -91,6 +106,14 @@ namespace Tests.Managers
             _pkceDao.Verify(p => p.SaveAsync(It.Is<PkceEntry>(e => e.State == "teststate")), Times.Once);
         }
 
+        /// <summary>
+        /// Tests that <see cref="AuthManager.StartAuthAsync(System.Collections.Generic.IList{string})"/>
+        /// throws an <see cref="ArgumentException"/> if scopes are empty.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="Task"/> representing the asynchronous operation.
+        /// </returns>
+        /// <exception cref="ArgumentException">Thrown when scopes are empty.</exception>
         [Fact]
         public async Task StartAuthAsync_ShouldThrowIfScopesEmpty()
         {
@@ -109,6 +132,14 @@ namespace Tests.Managers
             await Assert.ThrowsAsync<ArgumentException>(() => mgr.StartAuthAsync(new List<string>()));
         }
 
+        /// <summary>
+        /// Tests that <see cref="AuthManager.HandleCallbackAsync(string, string, string)"/>
+        /// throws <see cref="InvalidStateException"/> when the PKCE state is not found.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="Task"/> representing the asynchronous operation.
+        /// </returns>
+        /// <exception cref="InvalidStateException">Thrown when PKCE state is not found.</exception>
         [Fact]
         public async Task HandleCallbackAsync_ShouldThrow_InvalidState_WhenNotFound()
         {
@@ -129,6 +160,14 @@ namespace Tests.Managers
             await Assert.ThrowsAsync<InvalidStateException>(() => mgr.HandleCallbackAsync("code123", "unknown", "deviceX"));
         }
 
+        /// <summary>
+        /// Tests that <see cref="AuthManager.HandleCallbackAsync(string, string, string)"/>
+        /// throws <see cref="InvalidStateException"/> when the PKCE state is expired.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="Task"/> representing the asynchronous operation.
+        /// </returns>
+        /// <exception cref="InvalidStateException">Thrown when PKCE state is expired.</exception>
         [Fact]
         public async Task HandleCallbackAsync_ShouldThrow_InvalidState_WhenExpired()
         {
@@ -152,6 +191,13 @@ namespace Tests.Managers
             _pkceDao.Verify(p => p.DeleteAsync("stateX"), Times.Once);
         }
 
+        /// <summary>
+        /// Tests that <see cref="AuthManager.HandleCallbackAsync(string, string, string)"/>
+        /// completes the OAuth flow and returns the deeplink.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="Task"/> representing the asynchronous operation.
+        /// </returns>
         [Fact]
         public async Task HandleCallbackAsync_ShouldCompleteFlow_AndReturnDeeplink()
         {

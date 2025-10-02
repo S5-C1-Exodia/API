@@ -2,8 +2,14 @@
 
 namespace Tests.Services
 {
+    /// <summary>
+    /// Unit tests for <see cref="AuditService"/>.
+    /// </summary>
     public class AuditServiceTests
     {
+        /// <summary>
+        /// Tests that <see cref="AuditService.LogAuth(string, string, string)"/> writes the expected output to the console.
+        /// </summary>
         [Fact]
         public void LogAuth_ShouldWriteToConsole()
         {

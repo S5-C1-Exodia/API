@@ -9,6 +9,9 @@ using Api.Models;
 
 namespace API.Managers;
 
+/// <summary>
+/// Handles authentication logic, including PKCE flow, token exchange, and session management.
+/// </summary>
 public class AuthManager : IAuthManager
 {
     private readonly ICryptoHelper _crypto;
@@ -21,6 +24,19 @@ public class AuthManager : IAuthManager
     private readonly IClockService _clock;
     private readonly IConfigService _config;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthManager"/> class.
+    /// </summary>
+    /// <param name="crypto">The cryptography helper.</param>
+    /// <param name="urlBuilder">The URL builder helper.</param>
+    /// <param name="pkceDao">The PKCE DAO.</param>
+    /// <param name="oauth">The Spotify OAuth helper.</param>
+    /// <param name="tokenDao">The token DAO.</param>
+    /// <param name="session">The session service.</param>
+    /// <param name="deeplink">The deeplink helper.</param>
+    /// <param name="clock">The clock service.</param>
+    /// <param name="config">The configuration service.</param>
+    /// <exception cref="ArgumentNullException">Thrown if any dependency is null.</exception>
     public AuthManager(
         ICryptoHelper crypto,
         IUrlBuilderHelper urlBuilder,
@@ -43,6 +59,14 @@ public class AuthManager : IAuthManager
         _config = config ?? throw new ArgumentNullException(nameof(config));
     }
 
+    /// <summary>
+    /// Starts the PKCE authentication process and returns the authorization URL and state.
+    /// </summary>
+    /// <param name="scopes">The list of scopes requested for authentication.</param>
+    /// <returns>
+    /// An <see cref="AuthStartResponseDto"/> containing the authorization URL and state.
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="scopes"/> is null or empty.</exception>
     public async Task<AuthStartResponseDto> StartAuthAsync(IList<string> scopes)
     {
         if (scopes == null || scopes.Count == 0)
@@ -75,6 +99,18 @@ public class AuthManager : IAuthManager
         return response;
     }
 
+    /// <summary>
+    /// Handles the OAuth callback, exchanges the code for tokens, creates a session, and returns the deeplink.
+    /// </summary>
+    /// <param name="code">The authorization code returned by the OAuth provider.</param>
+    /// <param name="state">The PKCE state parameter.</param>
+    /// <param name="deviceInfo">Optional device information.</param>
+    /// <returns>
+    /// The deeplink URL to redirect the user to the mobile app.
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="code"/> or <paramref name="state"/> is null or empty.</exception>
+    /// <exception cref="InvalidStateException">Thrown if the state is unknown or expired.</exception>
+    /// <exception cref="TokenExchangeFailedException">Thrown if the token exchange fails.</exception>
     public async Task<string> HandleCallbackAsync(string code, string state, string deviceInfo)
     {
         if (string.IsNullOrWhiteSpace(code))

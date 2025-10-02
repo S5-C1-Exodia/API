@@ -3,8 +3,14 @@ using API.Helpers;
 
 namespace Tests.Helpers
 {
+    /// <summary>
+    /// Unit tests for <see cref="CryptoHelper"/>.
+    /// </summary>
     public class CryptoHelperTests
     {
+        /// <summary>
+        /// Tests that <see cref="CryptoHelper.GenerateState(int)"/> returns a URL-safe Base64 string.
+        /// </summary>
         [Fact]
         public void GenerateState_ShouldReturnUrlSafeBase64_AndNotEmpty()
         {
@@ -19,6 +25,9 @@ namespace Tests.Helpers
             Assert.True(s.Length >= 10);
         }
 
+        /// <summary>
+        /// Tests that <see cref="CryptoHelper.GenerateState(int)"/> throws an <see cref="ArgumentException"/> for invalid lengths.
+        /// </summary>
         [Fact]
         public void GenerateState_ShouldThrow_IfLengthInvalid()
         {
@@ -28,6 +37,9 @@ namespace Tests.Helpers
             Assert.Throws<ArgumentException>(() => helper.GenerateState(-1));
         }
 
+        /// <summary>
+        /// Tests that <see cref="CryptoHelper.GeneratePkce(out string, out string)"/> produces a valid verifier and challenge.
+        /// </summary>
         [Fact]
         public void GeneratePkce_ShouldProduceVerifierAndChallenge_UrlSafe()
         {

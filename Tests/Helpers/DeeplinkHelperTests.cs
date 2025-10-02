@@ -4,8 +4,14 @@ using Moq;
 
 namespace Tests.Helpers
 {
+    /// <summary>
+    /// Unit tests for <see cref="DeeplinkHelper"/>.
+    /// </summary>
     public class DeeplinkHelperTests
     {
+        /// <summary>
+        /// Tests that <see cref="DeeplinkHelper.BuildDeepLink(string)"/> correctly composes the deeplink URL.
+        /// </summary>
         [Fact]
         public void BuildDeepLink_ShouldComposeSchemeAndSid()
         {
@@ -20,6 +26,9 @@ namespace Tests.Helpers
             Assert.Contains("?sid=SID_123", link);
         }
 
+        /// <summary>
+        /// Tests that <see cref="DeeplinkHelper.BuildDeepLink(string)"/> throws an <see cref="ArgumentException"/> for invalid session IDs.
+        /// </summary>
         [Fact]
         public void BuildDeepLink_ShouldThrow_OnInvalidSid()
         {

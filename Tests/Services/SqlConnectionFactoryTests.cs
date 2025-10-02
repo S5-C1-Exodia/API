@@ -3,8 +3,14 @@ using MySqlConnector;
 
 namespace Tests.Services
 {
+    /// <summary>
+    /// Unit tests for <see cref="SqlConnectionFactory"/>.
+    /// </summary>
     public class SqlConnectionFactoryTests
     {
+        /// <summary>
+        /// Tests that the <see cref="SqlConnectionFactory"/> constructor throws an <see cref="ArgumentException"/> for an empty connection string.
+        /// </summary>
         [Fact]
         public void Constructor_ShouldThrow_OnEmptyConnectionString()
         {
@@ -12,6 +18,9 @@ namespace Tests.Services
             Assert.Throws<ArgumentException>(() => new SqlConnectionFactory("   "));
         }
 
+        /// <summary>
+        /// Tests that <see cref="SqlConnectionFactory.Create"/> returns a valid <see cref="MySqlConnection"/> instance.
+        /// </summary>
         [Fact]
         public void Create_ShouldReturn_MySqlConnection_Instance()
         {

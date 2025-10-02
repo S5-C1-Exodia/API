@@ -5,8 +5,14 @@ using Moq;
 
 namespace Tests.Helpers
 {
+    /// <summary>
+    /// Unit tests for <see cref="UrlBuilderHelper"/>.
+    /// </summary>
     public class UrlBuilderHelperTests
     {
+        /// <summary>
+        /// Tests that <see cref="UrlBuilderHelper.BuildAuthorizeUrl"/> correctly composes the authorization URL with all parameters.
+        /// </summary>
         [Fact]
         public void BuildAuthorizeUrl_ShouldComposeAllParameters()
         {
@@ -40,6 +46,10 @@ namespace Tests.Helpers
             Assert.Equal("S256", q["code_challenge_method"]);
         }
 
+        /// <summary>
+        /// Tests that <see cref="UrlBuilderHelper.BuildAuthorizeUrl"/> throws an <see cref="ArgumentException"/>
+        /// when invalid inputs are provided.
+        /// </summary>
         [Fact]
         public void BuildAuthorizeUrl_ShouldThrow_OnInvalidInputs()
         {

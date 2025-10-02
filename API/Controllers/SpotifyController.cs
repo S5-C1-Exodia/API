@@ -16,9 +16,15 @@ public class SpotifyController(IAuthManager authManager) : ControllerBase
     private readonly IAuthManager _authManager = authManager ?? throw new ArgumentNullException(nameof(authManager));
 
     /// <summary>
-    /// Démarre l'auth PKCE Spotify et renvoie l'URL d'autorisation + le state.
+    /// Starts the Spotify PKCE authentication and returns the authorization URL and state.
     /// </summary>
-    /// <param name="request">Scopes demandés par le client mobile.</param>
+    /// <param name="request">The request containing the scopes requested by the mobile client.</param>
+    /// <returns>
+    /// An <see cref="ActionResult{AuthStartResponseDto}"/> containing the authorization URL and state.
+    /// Returns 400 if the request is invalid, 500 for unexpected errors.
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown if the request is invalid.</exception>
+    /// <exception cref="Exception">Thrown for unexpected errors.</exception>
     [HttpPost("auth/start")]
     public async Task<ActionResult<AuthStartResponseDto>> StartAuth([FromBody] AuthStartRequestDto request)
     {
@@ -44,11 +50,19 @@ public class SpotifyController(IAuthManager authManager) : ControllerBase
     }
 
     /// <summary>
-    /// Callback OAuth Spotify (code + state). Crée la session et redirige vers le deeplink swipez://...
+    /// Spotify OAuth callback (code and state). Creates the session and redirects to the deeplink (swipez://...).
     /// </summary>
-    /// <param name="code">Code d'autorisation Spotify</param>
-    /// <param name="state">State PKCE</param>
-    /// <param name="device">Optionnel: deviceInfo (fallback si pas d'en-tête)</param>
+    /// <param name="code">The Spotify authorization code.</param>
+    /// <param name="state">The PKCE state.</param>
+    /// <param name="device">Optional: device info (fallback if header is missing).</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> that redirects to the mobile app deeplink.
+    /// Returns 400 for invalid state or arguments, 502 for token exchange failure, 500 for unexpected errors.
+    /// </returns>
+    /// <exception cref="InvalidStateException">Thrown if the state is unknown or expired.</exception>
+    /// <exception cref="TokenExchangeFailedException">Thrown if the token exchange fails.</exception>
+    /// <exception cref="ArgumentException">Thrown for invalid arguments.</exception>
+    /// <exception cref="Exception">Thrown for unexpected errors.</exception>
     [HttpGet("callback")]
     public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state, [FromQuery] string device = "")
     {
