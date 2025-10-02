@@ -1,7 +1,6 @@
-﻿namespace Api.Managers.InterfacesDao;
+﻿using Api.Models;
 
-using System.Threading.Tasks;
-using Api.Models;
+namespace Api.Managers.InterfacesDao;
 
 public interface IPkceDao
 {
