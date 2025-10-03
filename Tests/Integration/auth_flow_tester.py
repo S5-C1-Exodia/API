@@ -5,9 +5,7 @@ import requests
 
 
 def main():
-    # ⚠️ Mets l’URL de ton API (ngrok ou localhost)
-    base_url = "https://7187c96ec172.ngrok-free.app"
-    # Si tu testes en local avec un certificat dev non approuvé, mets False
+    base_url = "https://da73021267e0.ngrok-free.app"
     verify_tls = False
 
     scopes = [

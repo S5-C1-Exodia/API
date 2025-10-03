@@ -2,6 +2,7 @@ using System;
 using API.Controllers;
 using API.Controllers.InterfacesManagers;
 using API.DAO;
+using API.Errors;
 using API.Helpers; // si tu as un dossier Helpers dans le namespace API.Services, ajuste l’using
 using API.Managers;
 using Api.Managers.InterfacesDao;
@@ -80,6 +81,9 @@ builder.Services.AddScoped<ICryptoHelper, CryptoHelper>();
 builder.Services.AddScoped<IUrlBuilderHelper, UrlBuilderHelper>();
 builder.Services.AddScoped<IDeeplinkHelper, DeeplinkHelper>();
 builder.Services.AddScoped<ISpotifyOAuthHelper, SpotifyOAuthHelper>();
+
+// Error mapping
+builder.Services.AddSingleton<IErrorMapper, DefaultErrorMapper>();
 
 // Managers
 builder.Services.AddScoped<IAuthManager, AuthManager>();

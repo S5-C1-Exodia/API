@@ -37,7 +37,6 @@ public class SpotifyOAuthHelper(
         string tokenEndpoint = this._config.GetSpotifyTokenEndpoint();
         string clientId = this._config.GetSpotifyClientId();
 
-        // ---- 1) POST /api/token (authorization_code + PKCE) ----
         HttpClient http = this._httpClientFactory.CreateClient("spotify-oauth");
         HttpRequestMessage req = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint);
 
@@ -64,23 +63,18 @@ public class SpotifyOAuthHelper(
 
         if (!resp.IsSuccessStatusCode)
         {
-            // Erreurs Spotify typiques: invalid_grant, invalid_client (si secret requis par erreur), rate limit, etc.
             string detail = "HTTP " + ((int)resp.StatusCode).ToString() + " payload: " + payload;
             this._audit.LogAuth("spotify", "TokenExchange.HttpError", detail);
 
-            // 400 invalid_grant → code invalide/expiré
             if ((int)resp.StatusCode == 400)
                 throw new TokenExchangeFailedException("Invalid authorization code or PKCE verifier.");
 
-            // 429 rate limit
             if ((int)resp.StatusCode == 429)
                 throw new TokenExchangeFailedException("Rate limited by Spotify during token exchange.");
 
             throw new TokenExchangeFailedException("Spotify token endpoint returned an error.");
         }
 
-        // Parse JSON
-        // Example response: { "access_token":"...", "token_type":"Bearer", "scope":"...", "expires_in":3600, "refresh_token":"..." }
         JsonDocument doc;
         try
         {
@@ -96,7 +90,7 @@ public class SpotifyOAuthHelper(
         string refreshToken = this.ReadString(
             doc,
             "refresh_token"
-        ); // Peut être absent si Spotify ne le renvoie pas (cas rarissime)
+        ); 
         string scope = this.ReadString(doc, "scope");
         int expiresIn = this.ReadInt(doc, "expires_in", 3600);
 
@@ -104,14 +98,11 @@ public class SpotifyOAuthHelper(
             throw new TokenExchangeFailedException("Token response missing access_token.");
 
         if (string.IsNullOrWhiteSpace(refreshToken))
-            // Par prudence, on refuse car notre flux persiste le refresh token
             throw new TokenExchangeFailedException("Token response missing refresh_token.");
 
         DateTime now = this._clock.GetUtcNow();
-        // Petite marge de sécurité (60s)
         DateTime accessExpiresAt = now.AddSeconds(expiresIn > 60 ? expiresIn - 60 : expiresIn);
 
-        // ---- 2) GET /v1/me pour obtenir ProviderUserId ----
         string meEndpoint = "https://api.spotify.com/v1/me";
         HttpRequestMessage meReq = new HttpRequestMessage(HttpMethod.Get, meEndpoint);
         meReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -151,12 +142,8 @@ public class SpotifyOAuthHelper(
         if (string.IsNullOrWhiteSpace(providerUserId))
             throw new TokenExchangeFailedException("Spotify profile missing id.");
 
-        // Build TokenInfo DTO
         TokenInfo tokenInfo = new TokenInfo(accessToken, refreshToken, accessExpiresAt, scope, providerUserId);
-
-        // Audit succès
         this._audit.LogAuth("spotify", "AuthSuccess", "UserId=" + providerUserId);
-
         return tokenInfo;
     }
 

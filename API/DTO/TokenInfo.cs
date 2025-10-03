@@ -3,25 +3,21 @@
 using System;
 
 /// <summary>
-/// DTO containing information about OAuth tokens and related metadata.
+/// Data Transfer Object (DTO) containing information about OAuth tokens and related metadata.
 /// </summary>
 public class TokenInfo
 {
-    private string _accessToken;
-    private string _refreshToken;
-    private DateTime _accessExpiresAt;
-    private string _scope;
-    private string _providerUserId;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="TokenInfo"/> class.
     /// </summary>
-    /// <param name="accessToken">The access token string.</param>
-    /// <param name="refreshToken">The refresh token string.</param>
+    /// <param name="accessToken">The access token string used for authentication.</param>
+    /// <param name="refreshToken">The refresh token string used to obtain new access tokens.</param>
     /// <param name="accessExpiresAt">The UTC expiration date and time of the access token.</param>
-    /// <param name="scope">The OAuth scopes granted.</param>
+    /// <param name="scope">The OAuth scopes granted to the token.</param>
     /// <param name="providerUserId">The user ID at the OAuth provider.</param>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="accessToken"/> or <paramref name="refreshToken"/> is null or empty.</exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown if <paramref name="accessToken"/> or <paramref name="refreshToken"/> is null or empty.
+    /// </exception>
     public TokenInfo(string accessToken, string refreshToken, DateTime accessExpiresAt, string scope, string providerUserId)
     {
         this.AccessToken = accessToken;
@@ -32,65 +28,27 @@ public class TokenInfo
     }
 
     /// <summary>
-    /// Gets or sets the access token string.
+    /// Gets or sets the access token string used for authentication.
     /// </summary>
-    /// <exception cref="ArgumentException">Thrown if value is null or empty.</exception>
-    public string AccessToken
-    {
-        get { return this._accessToken; }
-        set
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                throw new ArgumentException("AccessToken cannot be null or empty.", nameof(value));
-            }
-
-            this._accessToken = value;
-        }
-    }
+    public string AccessToken { get; set; }
 
     /// <summary>
-    /// Gets or sets the refresh token string.
+    /// Gets or sets the refresh token string used to obtain new access tokens.
     /// </summary>
-    /// <exception cref="ArgumentException">Thrown if value is null or empty.</exception>
-    public string RefreshToken
-    {
-        get { return this._refreshToken; }
-        set
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                throw new ArgumentException("RefreshToken cannot be null or empty.", nameof(value));
-            }
-
-            this._refreshToken = value;
-        }
-    }
+    public string RefreshToken { get; set; }
 
     /// <summary>
     /// Gets or sets the UTC expiration date and time of the access token.
     /// </summary>
-    public DateTime AccessExpiresAt
-    {
-        get { return this._accessExpiresAt; }
-        set { this._accessExpiresAt = value; }
-    }
+    public DateTime AccessExpiresAt { get; set; }
 
     /// <summary>
-    /// Gets or sets the OAuth scopes granted.
+    /// Gets or sets the OAuth scopes granted to the token.
     /// </summary>
-    public string Scope
-    {
-        get { return this._scope; }
-        set { this._scope = value ?? string.Empty; }
-    }
+    public string Scope { get; set; }
 
     /// <summary>
     /// Gets or sets the user ID at the OAuth provider.
     /// </summary>
-    public string ProviderUserId
-    {
-        get { return this._providerUserId; }
-        set { this._providerUserId = value ?? string.Empty; }
-    }
+    public string ProviderUserId { get; set; }
 }
