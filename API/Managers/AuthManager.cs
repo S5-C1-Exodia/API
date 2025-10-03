@@ -111,7 +111,7 @@ public class AuthManager : IAuthManager
     /// <exception cref="ArgumentException">Thrown if <paramref name="code"/> or <paramref name="state"/> is null or empty.</exception>
     /// <exception cref="InvalidStateException">Thrown if the state is unknown or expired.</exception>
     /// <exception cref="TokenExchangeFailedException">Thrown if the token exchange fails.</exception>
-    public async Task<string> HandleCallbackAsync(string code, string state, string deviceInfo)
+    public async Task<string> HandleCallbackAsync(string code, string state, string? deviceInfo)
     {
         if (string.IsNullOrWhiteSpace(code))
         {
@@ -164,9 +164,7 @@ public class AuthManager : IAuthManager
         DateTime sessionExp = now.AddMinutes(_config.GetSessionTtlMinutes());
         string safeDeviceInfo = deviceInfo ?? string.Empty;
         string sessionId = await _session.CreateSessionAsync(safeDeviceInfo, now, sessionExp);
-
         await _tokenDao.AttachToSessionAsync(tokenSetId, sessionId);
-
         await _pkceDao.DeleteAsync(state);
 
         string deepLink = _deeplink.BuildDeepLink(sessionId);
