@@ -94,6 +94,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Global error handling middleware
+app.UseMiddleware<API.Middleware.ErrorHandlingMiddleware>();
+
 app.UseRouting();
 app.UseCors("Default");
 app.MapControllers();
