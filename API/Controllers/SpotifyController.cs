@@ -19,7 +19,6 @@ public class SpotifyController(IAuthManager authManager) : ControllerBase
     [HttpPost("auth/start")]
     public async Task<ActionResult<AuthStartResponseDto>> StartAuth([FromBody] AuthStartRequestDto request)
     {
-        // Plus de try/catch ici : si l’AuthManager lance ArgumentException ou autre, le middleware les mappe
         AuthStartResponseDto response = await this._authManager.StartAuthAsync(request.Scopes);
         return this.Ok(response);
     }
