@@ -147,11 +147,9 @@ public class AuthManager : IAuthManager
         }
         catch (Exception ex)
         {
-            // L’implé concrète de OAuthHelper pourra lancer des exceptions précises ; on wrappe générique ici.
             throw new TokenExchangeFailedException("Failed to exchange code for tokens.", ex);
         }
 
-        // Persist tokens (refresh token en clair pour l’instant, encapsulé dans TokenDao pour évoluer plus tard)
         long tokenSetId = await _tokenDao.SaveByStateAsync(
             state,
             "spotify",
