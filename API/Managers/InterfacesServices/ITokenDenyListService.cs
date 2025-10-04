@@ -5,7 +5,7 @@ using System.Threading.Tasks;
     /// <summary>
     /// Provides methods to manage a denylist of refresh tokens.
     /// </summary>
-public interface ITokenDenylistService
+public interface ITokenDenyListService
 {
     /// <summary>
     /// Checks if a refresh token hash is denied.
