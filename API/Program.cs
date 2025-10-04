@@ -72,9 +72,17 @@ builder.Services.AddSingleton<ISqlConnectionFactory>(sp =>
 builder.Services.AddScoped<IPkceDao, PkceDao>();
 builder.Services.AddScoped<ITokenDao, TokenDao>();
 builder.Services.AddScoped<ISessionDao, SessionDao>();
+builder.Services.AddScoped<IAccessTokenDao, AccessTokenDao>();
+builder.Services.AddScoped<IPlaylistSelectionDao, PlaylistSelectionDao>();
+builder.Services.AddScoped<IPlaylistCacheDao, PlaylistCacheDao>();
+builder.Services.AddScoped<IUserProfileCacheDao, UserProfileCacheDao>();
+
 
 // Services métier
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<ITokenDenyListService, TokenDenyListService>();
+builder.Services.AddScoped<IHashService, HashService>();
+
 
 // Helpers
 builder.Services.AddScoped<ICryptoHelper, CryptoHelper>();
