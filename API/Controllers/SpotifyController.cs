@@ -19,8 +19,8 @@ public class SpotifyController(IAuthManager authManager) : ControllerBase
     [HttpPost("auth/start")]
     public async Task<ActionResult<AuthStartResponseDto>> StartAuth([FromBody] AuthStartRequestDto request)
     {
-        AuthStartResponseDto response = await this._authManager.StartAuthAsync(request.Scopes);
-        return this.Ok(response);
+        AuthStartResponseDto response = await _authManager.StartAuthAsync(request.Scopes);
+        return Ok(response);
     }
 
     /// <summary>
@@ -34,18 +34,17 @@ public class SpotifyController(IAuthManager authManager) : ControllerBase
     public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state,
         [FromQuery] string? device = "")
     {
-        // Récupère device info : priorité à l’en-tête X-Device-Info
         string deviceInfo = device ?? string.Empty;
-        bool hasHeader = this.Request.Headers.TryGetValue("X-Device-Info", out StringValues headerValues);
+        bool hasHeader = Request.Headers.TryGetValue("X-Device-Info", out StringValues headerValues);
         if (hasHeader && !string.IsNullOrEmpty(headerValues.ToString()))
         {
             deviceInfo = headerValues.ToString();
         }
 
-        string deeplink = await this._authManager.HandleCallbackAsync(code, state, deviceInfo);
-        return this.Redirect(deeplink);
+        string deeplink = await _authManager.HandleCallbackAsync(code, state, deviceInfo);
+        return Redirect(deeplink);
     }
-    
+
     /// <summary>
     /// Disconnects the user from Spotify by revoking tokens and clearing session data.
     /// </summary>
@@ -60,5 +59,4 @@ public class SpotifyController(IAuthManager authManager) : ControllerBase
         await _authManager.LogoutAsync(sessionId);
         return NoContent();
     }
-
 }

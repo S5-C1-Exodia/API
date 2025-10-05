@@ -22,14 +22,14 @@ public class TokenDao(ISqlConnectionFactory factory, IClockService clock) : ITok
         if (string.IsNullOrWhiteSpace(refreshTokenEnc))
             throw new ArgumentException("refreshTokenEnc cannot be null or empty.", nameof(refreshTokenEnc));
 
-        DateTime now = this._clock.GetUtcNow();
+        DateTime now = _clock.GetUtcNow();
 
         const string sql = @"
 INSERT INTO TOKENSET (Provider, ProviderUserId, RefreshTokenEnc, Scope, AccessExpiresAt, UpdatedAt)
 VALUES (@provider, @puid, @refresh, @scope, @accessExp, @updatedAt);
 SELECT LAST_INSERT_ID();";
 
-        MySqlConnection conn = this._factory.Create();
+        MySqlConnection conn = _factory.Create();
         try
         {
             await conn.OpenAsync();
@@ -66,14 +66,14 @@ SELECT LAST_INSERT_ID();";
         if (string.IsNullOrWhiteSpace(sessionId))
             throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
 
-        DateTime now = this._clock.GetUtcNow();
+        DateTime now = _clock.GetUtcNow();
 
         const string sql = @"
 UPDATE TOKENSET
 SET SessionId = @sid, UpdatedAt = @updatedAt
 WHERE TokenSetId = @id";
 
-        MySqlConnection conn = this._factory.Create();
+        MySqlConnection conn = _factory.Create();
         try
         {
             await conn.OpenAsync();

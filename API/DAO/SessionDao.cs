@@ -19,7 +19,7 @@ public class SessionDao(ISqlConnectionFactory factory) : ISessionDao
 INSERT INTO APPSESSION (SessionId, DeviceInfo, CreatedAt, LastSeenAt, ExpiresAt)
 VALUES (@sid, @device, @created, @lastseen, @expires)";
 
-        MySqlConnection conn = this._factory.Create();
+        MySqlConnection conn = _factory.Create();
         try
         {
             await conn.OpenAsync();
@@ -54,7 +54,7 @@ FROM APPSESSION
 WHERE SessionId = @sid
 LIMIT 1";
 
-        MySqlConnection conn = this._factory.Create();
+        MySqlConnection conn = _factory.Create();
         try
         {
             await conn.OpenAsync();

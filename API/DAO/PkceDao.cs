@@ -20,7 +20,7 @@ public class PkceDao : IPkceDao
             throw new ArgumentNullException(nameof(factory));
         }
 
-        this._factory = factory;
+        _factory = factory;
     }
 
     public async Task SaveAsync(PkceEntry entry)
@@ -34,7 +34,7 @@ public class PkceDao : IPkceDao
 INSERT INTO PKCEENTRY (State, CodeVerifier, CodeChallenge, ExpiresAt)
 VALUES (@state, @verifier, @challenge, @exp)";
 
-        MySqlConnection conn = this._factory.Create();
+        MySqlConnection conn = _factory.Create();
         try
         {
             await conn.OpenAsync();
@@ -70,7 +70,7 @@ FROM PKCEENTRY
 WHERE State = @state
 LIMIT 1";
 
-        MySqlConnection conn = this._factory.Create();
+        MySqlConnection conn = _factory.Create();
         try
         {
             await conn.OpenAsync();
@@ -119,7 +119,7 @@ LIMIT 1";
 
         const string sql = @"DELETE FROM PKCEENTRY WHERE State = @state";
 
-        MySqlConnection conn = this._factory.Create();
+        MySqlConnection conn = _factory.Create();
         try
         {
             await conn.OpenAsync();

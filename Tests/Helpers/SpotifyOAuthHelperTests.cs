@@ -219,7 +219,7 @@ namespace Tests.Helpers
                     throw new ArgumentNullException(nameof(responses));
                 }
 
-                this._responses = responses;
+                _responses = responses;
             }
 
             /// <summary>
@@ -231,7 +231,7 @@ namespace Tests.Helpers
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
                 CancellationToken cancellationToken)
             {
-                if (this._responses.Count == 0)
+                if (_responses.Count == 0)
                 {
                     HttpResponseMessage empty = new HttpResponseMessage(HttpStatusCode.InternalServerError)
                     {
@@ -240,7 +240,7 @@ namespace Tests.Helpers
                     return Task.FromResult(empty);
                 }
 
-                HttpResponseMessage next = this._responses.Dequeue();
+                HttpResponseMessage next = _responses.Dequeue();
                 return Task.FromResult(next);
             }
         }

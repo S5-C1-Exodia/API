@@ -15,7 +15,7 @@ public class DeeplinkHelper(IConfigService config) : IDeeplinkHelper
         }
 
         // Exemple: swipez://oauth-callback/spotify?sid=...
-        string schemeHost = this._config.GetDeeplinkSchemeHost(); // ex: "swipez://oauth-callback/spotify"
+        string schemeHost = _config.GetDeeplinkSchemeHost(); // ex: "swipez://oauth-callback/spotify"
         string link = schemeHost + "?sid=" + Uri.EscapeDataString(sessionId);
         return link;
     }

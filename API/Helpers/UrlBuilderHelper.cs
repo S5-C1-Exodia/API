@@ -41,7 +41,7 @@ public class UrlBuilderHelper(IConfigService config) : IUrlBuilderHelper
             throw new ArgumentException("codeChallengeMethod cannot be null or empty.", nameof(codeChallengeMethod));
         }
 
-        string endpoint = this._config.GetSpotifyAuthorizeEndpoint();
+        string endpoint = _config.GetSpotifyAuthorizeEndpoint();
         string scopeJoined = string.Join(" ", scopes);
 
         UriBuilder builder = new UriBuilder(endpoint);

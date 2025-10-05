@@ -20,8 +20,8 @@ public class AuthStartResponseDto
     /// </exception>
     public AuthStartResponseDto(string authorizationUrl, string state)
     {
-        this.AuthorizationUrl = authorizationUrl;
-        this.State = state;
+        AuthorizationUrl = authorizationUrl;
+        State = state;
     }
 
     /// <summary>

@@ -34,10 +34,10 @@ public class SpotifyOAuthHelper(
             throw new ArgumentException("codeVerifier cannot be null or empty.", nameof(codeVerifier));
 
 
-        string tokenEndpoint = this._config.GetSpotifyTokenEndpoint();
-        string clientId = this._config.GetSpotifyClientId();
+        string tokenEndpoint = _config.GetSpotifyTokenEndpoint();
+        string clientId = _config.GetSpotifyClientId();
 
-        HttpClient http = this._httpClientFactory.CreateClient("spotify-oauth");
+        HttpClient http = _httpClientFactory.CreateClient("spotify-oauth");
         HttpRequestMessage req = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint);
 
         string body = "grant_type=authorization_code"
@@ -55,7 +55,7 @@ public class SpotifyOAuthHelper(
         }
         catch (Exception ex)
         {
-            this._audit.LogAuth("spotify", "TokenExchange.NetworkError", ex.Message);
+            _audit.LogAuth("spotify", "TokenExchange.NetworkError", ex.Message);
             throw new TokenExchangeFailedException("Network error during token exchange.", ex);
         }
 
@@ -64,7 +64,7 @@ public class SpotifyOAuthHelper(
         if (!resp.IsSuccessStatusCode)
         {
             string detail = "HTTP " + ((int)resp.StatusCode).ToString() + " payload: " + payload;
-            this._audit.LogAuth("spotify", "TokenExchange.HttpError", detail);
+            _audit.LogAuth("spotify", "TokenExchange.HttpError", detail);
 
             if ((int)resp.StatusCode == 400)
                 throw new TokenExchangeFailedException("Invalid authorization code or PKCE verifier.");
@@ -82,17 +82,17 @@ public class SpotifyOAuthHelper(
         }
         catch (Exception ex)
         {
-            this._audit.LogAuth("spotify", "TokenExchange.ParseError", ex.Message);
+            _audit.LogAuth("spotify", "TokenExchange.ParseError", ex.Message);
             throw new TokenExchangeFailedException("Failed to parse token response.", ex);
         }
 
-        string accessToken = this.ReadString(doc, "access_token");
-        string refreshToken = this.ReadString(
+        string accessToken = ReadString(doc, "access_token");
+        string refreshToken = ReadString(
             doc,
             "refresh_token"
         ); 
-        string scope = this.ReadString(doc, "scope");
-        int expiresIn = this.ReadInt(doc, "expires_in", 3600);
+        string scope = ReadString(doc, "scope");
+        int expiresIn = ReadInt(doc, "expires_in", 3600);
 
         if (string.IsNullOrWhiteSpace(accessToken))
             throw new TokenExchangeFailedException("Token response missing access_token.");
@@ -100,7 +100,7 @@ public class SpotifyOAuthHelper(
         if (string.IsNullOrWhiteSpace(refreshToken))
             throw new TokenExchangeFailedException("Token response missing refresh_token.");
 
-        DateTime now = this._clock.GetUtcNow();
+        DateTime now = _clock.GetUtcNow();
         DateTime accessExpiresAt = now.AddSeconds(expiresIn > 60 ? expiresIn - 60 : expiresIn);
 
         string meEndpoint = "https://api.spotify.com/v1/me";
@@ -114,7 +114,7 @@ public class SpotifyOAuthHelper(
         }
         catch (Exception ex)
         {
-            this._audit.LogAuth("spotify", "Me.NetworkError", ex.Message);
+            _audit.LogAuth("spotify", "Me.NetworkError", ex.Message);
             throw new TokenExchangeFailedException("Network error fetching Spotify profile.", ex);
         }
 
@@ -123,7 +123,7 @@ public class SpotifyOAuthHelper(
         if (!meResp.IsSuccessStatusCode)
         {
             string detail = "HTTP " + ((int)meResp.StatusCode).ToString() + " payload: " + mePayload;
-            this._audit.LogAuth("spotify", "Me.HttpError", detail);
+            _audit.LogAuth("spotify", "Me.HttpError", detail);
             throw new TokenExchangeFailedException("Failed to fetch Spotify user profile.");
         }
 
@@ -134,16 +134,16 @@ public class SpotifyOAuthHelper(
         }
         catch (Exception ex)
         {
-            this._audit.LogAuth("spotify", "Me.ParseError", ex.Message);
+            _audit.LogAuth("spotify", "Me.ParseError", ex.Message);
             throw new TokenExchangeFailedException("Failed to parse Spotify user profile.", ex);
         }
 
-        string providerUserId = this.ReadString(meDoc, "id");
+        string providerUserId = ReadString(meDoc, "id");
         if (string.IsNullOrWhiteSpace(providerUserId))
             throw new TokenExchangeFailedException("Spotify profile missing id.");
 
         TokenInfo tokenInfo = new TokenInfo(accessToken, refreshToken, accessExpiresAt, scope, providerUserId);
-        this._audit.LogAuth("spotify", "AuthSuccess", "UserId=" + providerUserId);
+        _audit.LogAuth("spotify", "AuthSuccess", "UserId=" + providerUserId);
         return tokenInfo;
     }
 

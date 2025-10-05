@@ -20,5 +20,5 @@ public interface ITokenDenyListService
     /// <param name="refreshTokenHash">The hash of the refresh token.</param>
     /// <param name="reason">The reason for denial.</param>
     /// <param name="expiresAtUtc">The UTC expiration date and time for the deny entry (optional).</param>
-    Task AddAsync(string refreshTokenHash, string reason, System.DateTime? expiresAtUtc);
+    Task AddAsync(string refreshTokenHash, string reason, DateTime? expiresAtUtc);
 }

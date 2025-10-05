@@ -11,11 +11,11 @@ public class SqlConnectionFactory : ISqlConnectionFactory
     {
         if (string.IsNullOrWhiteSpace(connectionString))
             throw new ArgumentException("connectionString cannot be null or empty.", nameof(connectionString));
-        this._connectionString = connectionString;
+        _connectionString = connectionString;
     }
 
     public MySqlConnection Create()
     {
-        return new MySqlConnection(this._connectionString);
+        return new MySqlConnection(_connectionString);
     }
 }
