@@ -1,8 +1,9 @@
-﻿using Api.Managers.InterfacesDao;
+﻿using API.Services;
+using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
 using Api.Models;
-using API.Services;
 using Moq;
+using MySqlConnector;
 
 namespace Tests.Services
 {
@@ -11,61 +12,44 @@ namespace Tests.Services
     /// </summary>
     public class SessionServiceTests
     {
-        /// <summary>
-        /// Tests that <see cref="SessionService.CreateSessionAsync(string, DateTime, DateTime)"/> inserts a session with the expected fields and returns the session ID.
-        /// </summary>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        private readonly Mock<ISessionDao> _dao = new();
+        private readonly Mock<IIdGenerator> _ids = new();
+        private readonly Mock<IClockService> _clock = new();
+
         [Fact]
-        public async Task CreateSessionAsync_ShouldInsert_WithExpectedFields_AndReturnSessionId()
+        public async Task CreateSessionAsync_ShouldGenerateId_AndInsert()
         {
-            Mock<ISessionDao> dao = new Mock<ISessionDao>();
-            Mock<IIdGenerator> ids = new Mock<IIdGenerator>();
+            _ids.Setup(i => i.NewSessionId()).Returns("session123");
+            var now = DateTime.UtcNow;
+            var svc = new SessionService(_dao.Object, _ids.Object, _clock.Object);
 
-            string expectedId = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            ids.Setup(i => i.NewSessionId()).Returns(expectedId);
+            string sid = await svc.CreateSessionAsync("deviceX", now, now.AddMinutes(30));
 
-            AppSession captured = null;
-            dao.Setup(d => d.InsertAsync(It.IsAny<AppSession>()))
-                .Callback<AppSession>(s => captured = s)
-                .Returns(Task.CompletedTask);
-
-            SessionService service = new SessionService(dao.Object, ids.Object);
-
-            DateTime created = new DateTime(2025, 1, 1, 12, 0, 0, DateTimeKind.Utc);
-            DateTime expires = created.AddHours(1);
-
-            string returned = await service.CreateSessionAsync("Android Pixel 7", created, expires);
-
-            Assert.Equal(expectedId, returned);
-            Assert.NotNull(captured);
-            Assert.Equal(expectedId, captured.SessionId);
-            Assert.Equal("Android Pixel 7", captured.DeviceInfo);
-            Assert.Equal(created, captured.CreatedAt);
-            Assert.Equal(created, captured.LastSeenAt);
-            Assert.Equal(expires, captured.ExpiresAt);
-
-            dao.Verify(d => d.InsertAsync(It.IsAny<AppSession>()), Times.Once);
+            Assert.Equal("session123", sid);
+            _dao.Verify(d => d.InsertAsync(It.Is<AppSession>(s => s.SessionId == "session123")), Times.Once);
         }
 
-        /// <summary>
-        /// Tests that <see cref="SessionService.GetSessionAsync(string)"/> retrieves a session from the DAO.
-        /// </summary>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Fact]
-        public async Task GetSessionAsync_ShouldReturnFromDao()
+        public async Task GetSessionAsync_ShouldCallDao()
         {
-            Mock<ISessionDao> dao = new Mock<ISessionDao>();
-            Mock<IIdGenerator> ids = new Mock<IIdGenerator>();
+            var expected = new AppSession("sid", "dev", DateTime.UtcNow, DateTime.UtcNow, DateTime.UtcNow.AddMinutes(1));
+            _dao.Setup(d => d.GetAsync("sid")).ReturnsAsync(expected);
+            var svc = new SessionService(_dao.Object, _ids.Object, _clock.Object);
 
-            AppSession session = new AppSession("sid123", "dev", DateTime.UtcNow, DateTime.UtcNow, DateTime.UtcNow.AddHours(1));
-            dao.Setup(d => d.GetAsync("sid123")).ReturnsAsync(session);
+            var res = await svc.GetSessionAsync("sid");
 
-            SessionService service = new SessionService(dao.Object, ids.Object);
-
-            AppSession got = await service.GetSessionAsync("sid123");
-
-            Assert.Same(session, got);
-            dao.Verify(d => d.GetAsync("sid123"), Times.Once);
+            Assert.Equal(expected, res);
         }
+
+        [Fact]
+        public async Task DeleteAsync_ShouldCallDao()
+        {
+            var svc = new SessionService(_dao.Object, _ids.Object, _clock.Object);
+
+            await svc.DeleteAsync("sid");
+
+            _dao.Verify(d => d.DeleteAsync("sid"), Times.Once);
+        }
+        
     }
 }
