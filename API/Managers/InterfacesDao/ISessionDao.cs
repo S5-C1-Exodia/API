@@ -22,7 +22,7 @@ public interface ISessionDao
     /// <returns>
     /// A task representing the asynchronous operation. The task result contains the <see cref="AppSession"/> if found; otherwise, null.
     /// </returns>
-    Task<AppSession> GetAsync(string sessionId);
+    Task<AppSession?> GetAsync(string? sessionId);
     
     Task DeleteAsync(string sessionId);
 

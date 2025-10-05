@@ -8,6 +8,14 @@ using API.Managers.InterfacesServices;
 
 namespace API.Helpers;
 
+/// <summary>
+/// Helper class for handling Spotify OAuth token exchange and user profile retrieval.
+/// </summary>
+/// <param name="httpClientFactory">Factory for creating HTTP clients.</param>
+/// <param name="config">Configuration service for retrieving Spotify endpoints and client information.</param>
+/// <param name="clock">Service for retrieving the current UTC time.</param>
+/// <param name="audit">Audit service for logging authentication events.</param>
+/// <exception cref="ArgumentNullException">Thrown if any required dependency is null.</exception>
 public class SpotifyOAuthHelper(
     IHttpClientFactory httpClientFactory,
     IConfigService config,
@@ -22,8 +30,23 @@ public class SpotifyOAuthHelper(
     private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
 
     private readonly IAuditService
-        _audit = audit ?? throw new ArgumentNullException(nameof(audit)); // optionnel (hook Sprint 1+)
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
 
+    /// <summary>
+    /// Exchanges an authorization code for Spotify access and refresh tokens, and retrieves the user's Spotify profile.
+    /// </summary>
+    /// <param name="code">The authorization code received from Spotify. Must not be null or empty.</param>
+    /// <param name="redirectUri">The redirect URI used in the OAuth flow. Must not be null or empty.</param>
+    /// <param name="codeVerifier">The PKCE code verifier. Must not be null or empty.</param>
+    /// <returns>
+    /// A <see cref="TokenInfo"/> object containing the access token, refresh token, expiration, scope, and Spotify user ID.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown if <paramref name="code"/>, <paramref name="redirectUri"/>, or <paramref name="codeVerifier"/> is null or empty.
+    /// </exception>
+    /// <exception cref="TokenExchangeFailedException">
+    /// Thrown if the token exchange fails, the response is invalid, or the Spotify user profile cannot be retrieved or parsed.
+    /// </exception>
     public async Task<TokenInfo> ExchangeCodeForTokensAsync(string code, string redirectUri, string codeVerifier)
     {
         if (string.IsNullOrWhiteSpace(code))
@@ -32,7 +55,6 @@ public class SpotifyOAuthHelper(
             throw new ArgumentException("redirectUri cannot be null or empty.", nameof(redirectUri));
         if (string.IsNullOrWhiteSpace(codeVerifier))
             throw new ArgumentException("codeVerifier cannot be null or empty.", nameof(codeVerifier));
-
 
         string tokenEndpoint = _config.GetSpotifyTokenEndpoint();
         string clientId = _config.GetSpotifyClientId();
@@ -90,7 +112,7 @@ public class SpotifyOAuthHelper(
         string refreshToken = ReadString(
             doc,
             "refresh_token"
-        ); 
+        );
         string scope = ReadString(doc, "scope");
         int expiresIn = ReadInt(doc, "expires_in", 3600);
 
@@ -147,6 +169,14 @@ public class SpotifyOAuthHelper(
         return tokenInfo;
     }
 
+    /// <summary>
+    /// Reads a string property from a <see cref="JsonDocument"/>.
+    /// </summary>
+    /// <param name="doc">The JSON document to read from.</param>
+    /// <param name="property">The property name to retrieve.</param>
+    /// <returns>
+    /// The string value of the property, or an empty string if not found or not a string.
+    /// </returns>
     private string ReadString(JsonDocument doc, string property)
     {
         if (doc == null) return string.Empty;
@@ -155,6 +185,15 @@ public class SpotifyOAuthHelper(
         return el.ToString();
     }
 
+    /// <summary>
+    /// Reads an integer property from a <see cref="JsonDocument"/>, or returns a default value if not found or invalid.
+    /// </summary>
+    /// <param name="doc">The JSON document to read from.</param>
+    /// <param name="property">The property name to retrieve.</param>
+    /// <param name="defaultValue">The default value to return if the property is not found or not a valid integer.</param>
+    /// <returns>
+    /// The integer value of the property, or <paramref name="defaultValue"/> if not found or invalid.
+    /// </returns>
     private int ReadInt(JsonDocument doc, string property, int defaultValue)
     {
         if (doc == null) return defaultValue;

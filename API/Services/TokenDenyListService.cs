@@ -7,6 +7,12 @@ using API.Managers.InterfacesServices;
 namespace API.Services
 {
     /// <summary>
+    /// Service for managing token denylist operations, including orchestration and TTL handling.
+    /// </summary>
+    /// <param name="dao">Data Access Object for denylisted refresh tokens.</param>
+    /// <param name="clock">Service for retrieving the current time.</param>
+    /// <exception cref="ArgumentNullException">Thrown if any dependency is null.</exception>
+    /// <summary>
     /// Service métier : orchestrer la denylist via le DAO, gérer les dates/TTL.
     /// Aucun SQL ici (SRP/DIP).
     /// </summary>
@@ -15,6 +21,11 @@ namespace API.Services
         private readonly IDenylistedRefreshDao _dao = dao ?? throw new ArgumentNullException(nameof(dao));
         private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
 
+        /// <summary>
+        /// Checks if a refresh token hash is denylisted.
+        /// </summary>
+        /// <param name="refreshTokenHash">The hash of the refresh token to check.</param>
+        /// <returns>A task that resolves to true if the token is denylisted, otherwise false.</returns>
         public Task<bool> IsDeniedAsync(string refreshTokenHash)
         {
             var now = _clock.GetUtcNow();

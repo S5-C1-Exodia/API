@@ -2,9 +2,24 @@
 
 using System;
 
+/// <summary>
+/// Default implementation of <see cref="IErrorMapper"/> for mapping exceptions to standardized <see cref="ApiError"/> responses.
+/// Handles various known exception types and assigns appropriate error codes, messages, and HTTP status codes.
+/// </summary>
 public class DefaultErrorMapper : IErrorMapper
 {
-    public ApiError Map(Exception exception, string correlationId, bool includeDetails, DateTime nowUtc, out int httpStatus)
+    /// <summary>
+    /// Maps an <see cref="Exception"/> to an <see cref="ApiError"/> and determines the corresponding HTTP status code.
+    /// </summary>
+    /// <param name="exception">The exception to map. If null, a generic unknown error is returned.</param>
+    /// <param name="correlationId">A correlation identifier for tracing the error (can be null).</param>
+    /// <param name="includeDetails">If true, includes detailed exception information in the error response.</param>
+    /// <param name="nowUtc">The current UTC timestamp to use for the error.</param>
+    /// <param name="httpStatus">When this method returns, contains the HTTP status code corresponding to the error.</param>
+    /// <returns>
+    /// An <see cref="ApiError"/> representing the mapped error.
+    /// </returns>
+    public ApiError Map(Exception? exception, string correlationId, bool includeDetails, DateTime nowUtc, out int httpStatus)
     {
         if (exception == null)
         {
@@ -17,7 +32,6 @@ public class DefaultErrorMapper : IErrorMapper
         string details = includeDetails ? exception.ToString() : string.Empty;
         int status = 500;
 
-        // Mapping précis de tes exceptions métier
         if (exception is InvalidStateException)
         {
             code = "error.invalid_state";

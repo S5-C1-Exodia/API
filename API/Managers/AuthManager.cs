@@ -7,8 +7,9 @@ using Api.Managers.InterfacesServices;
 using API.Managers.InterfacesServices;
 using Api.Models;
 
-namespace API.Managers;
-
+/// <summary>
+/// Handles authentication-related operations, including starting authentication flows, handling callbacks, and logging out.
+/// </summary>
 public class AuthManager(
     ICryptoHelper crypto,
     IUrlBuilderHelper urlBuilder,
@@ -38,24 +39,21 @@ public class AuthManager(
     private readonly IDeeplinkHelper _deeplink = deeplink ?? throw new ArgumentNullException(nameof(deeplink));
     private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     private readonly IConfigService _config = config ?? throw new ArgumentNullException(nameof(config));
-
-    private readonly IAccessTokenDao
-        _accessTokenDao = accessTokenDao ?? throw new ArgumentNullException(nameof(accessTokenDao));
-
-    private readonly IPlaylistSelectionDao _playlistSelectionDao =
-        playlistSelectionDao ?? throw new ArgumentNullException(nameof(playlistSelectionDao));
-
-    private readonly IPlaylistCacheDao _playlistCacheDao =
-        playlistCacheDao ?? throw new ArgumentNullException(nameof(playlistCacheDao));
-
-    private readonly IUserProfileCacheDao _userProfileCacheDao =
-        userProfileCacheDao ?? throw new ArgumentNullException(nameof(userProfileCacheDao));
-
+    private readonly IAccessTokenDao _accessTokenDao = accessTokenDao ?? throw new ArgumentNullException(nameof(accessTokenDao));
+    private readonly IPlaylistSelectionDao _playlistSelectionDao = playlistSelectionDao ?? throw new ArgumentNullException(nameof(playlistSelectionDao));
+    private readonly IPlaylistCacheDao _playlistCacheDao = playlistCacheDao ?? throw new ArgumentNullException(nameof(playlistCacheDao));
+    private readonly IUserProfileCacheDao _userProfileCacheDao = userProfileCacheDao ?? throw new ArgumentNullException(nameof(userProfileCacheDao));
     private readonly ITokenDenyListService _denylist = denylist ?? throw new ArgumentNullException(nameof(denylist));
     private readonly IHashService _hash = hash ?? throw new ArgumentNullException(nameof(hash));
     private readonly IAuditService _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     private readonly ITransactionRunner _txRunner = txRunner ?? throw new ArgumentNullException(nameof(txRunner));
 
+    /// <summary>
+    /// Starts the authentication process by generating a state and PKCE challenge, saving them, and returning the authorization URL and state.
+    /// </summary>
+    /// <param name="scopes">The list of scopes to request.</param>
+    /// <returns>An <see cref="AuthStartResponseDto"/> containing the authorization URL and state.</returns>
+    /// <exception cref="ArgumentException">Thrown if scopes is null or empty.</exception>
     public async Task<AuthStartResponseDto> StartAuthAsync(IList<string> scopes)
     {
         if (scopes == null || scopes.Count == 0)
@@ -82,6 +80,16 @@ public class AuthManager(
         return new AuthStartResponseDto(url, state);
     }
 
+    /// <summary>
+    /// Handles the OAuth callback by exchanging the code for tokens, creating a session, and returning a deep link.
+    /// </summary>
+    /// <param name="code">The authorization code received from the provider.</param>
+    /// <param name="state">The state parameter to validate the request.</param>
+    /// <param name="deviceInfo">Optional device information.</param>
+    /// <returns>A deep link string for the authenticated session.</returns>
+    /// <exception cref="ArgumentException">Thrown if code or state is null or empty.</exception>
+    /// <exception cref="InvalidStateException">Thrown if the state is unknown or expired.</exception>
+    /// <exception cref="TokenExchangeFailedException">Thrown if token exchange fails.</exception>
     public async Task<string> HandleCallbackAsync(string code, string state, string? deviceInfo)
     {
         if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("code cannot be null or empty.", nameof(code));
@@ -130,8 +138,11 @@ public class AuthManager(
     }
 
     /// <summary>
-    ///     US 1.3 – Déconnexion sécurisée (denylist hors TX + purges atomiques + audit).
+    /// Logs out a user by denylisting the refresh token, purging all session-related data, and auditing the operation.
     /// </summary>
+    /// <param name="sessionId">The session identifier to log out.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="ArgumentException">Thrown if sessionId is null or empty.</exception>
     public async Task LogoutAsync(string sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -139,18 +150,11 @@ public class AuthManager(
 
         DateTime now = _clock.GetUtcNow();
 
-        // 1) TokenSet lié à la session
         TokenSet? tokenSet = await _tokenDao.GetBySessionAsync(sessionId);
 
-        // 2) Denylist du refresh (hors transaction)
         if (!string.IsNullOrWhiteSpace(tokenSet?.RefreshTokenEnc))
-        {
-            string refresh = tokenSet.RefreshTokenEnc; // en clair pour l’instant
-            string hash = _hash.Sha256Base64(refresh);
-            await _denylist.AddAsync(hash, "logout", now.AddDays(90));
-        }
+            await _denylist.AddAsync(_hash.Sha256Base64(tokenSet.RefreshTokenEnc), "logout", now.AddDays(90));
 
-        // 3) Purge atomique de toutes les données liées à la session
         await _txRunner.RunInTransaction(async (conn, tx) =>
             {
                 await _accessTokenDao.DeleteBySessionAsync(sessionId, conn, tx);
@@ -168,7 +172,6 @@ public class AuthManager(
             }
         );
 
-        // 4) Audit
         _audit.LogAuth("spotify", "SpotifyLogout", "purge DB + denylist");
     }
 }
