@@ -19,7 +19,7 @@ public class PkceDao : IPkceDao
     /// </summary>
     /// <param name="factory">The SQL connection factory used to create database connections.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="factory"/> is null.</exception>
-    public PkceDao(ISqlConnectionFactory? factory)
+    public PkceDao(ISqlConnectionFactory factory)
     {
         _factory = factory ?? throw new ArgumentNullException(nameof(factory));
     }
