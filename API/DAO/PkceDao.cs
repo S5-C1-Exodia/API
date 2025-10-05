@@ -32,7 +32,7 @@ public class PkceDao : IPkceDao
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="entry"/> is null.</exception>
     /// <exception cref="DataException">Thrown if the number of affected rows is not 1.</exception>
     /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
-    public async Task SaveAsync(PkceEntry? entry)
+    public async Task SaveAsync(PkceEntry entry)
     {
         if (entry == null)
             throw new ArgumentNullException(nameof(entry));
