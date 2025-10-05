@@ -1,5 +1,4 @@
 ﻿using API.Managers.InterfacesServices;
-using API.Managers.InterfacesServices;
 using MySqlConnector;
 
 namespace API.Services
