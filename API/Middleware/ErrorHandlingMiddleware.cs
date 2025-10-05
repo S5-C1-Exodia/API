@@ -25,22 +25,22 @@ public class ErrorHandlingMiddleware(
 
     public async Task Invoke(HttpContext context)
     {
-        string correlationId = this.GetOrCreateCorrelationId(context);
+        string correlationId = GetOrCreateCorrelationId(context);
 
         try
         {
-            await this._next(context);
+            await _next(context);
         }
         catch (Exception ex)
         {
-            bool includeDetails = this._env.IsDevelopment();
-            DateTime now = this._clock.GetUtcNow();
+            bool includeDetails = _env.IsDevelopment();
+            DateTime now = _clock.GetUtcNow();
 
             int status;
-            ApiError error = this._mapper.Map(ex, correlationId, includeDetails, now, out status);
+            ApiError error = _mapper.Map(ex, correlationId, includeDetails, now, out status);
 
             // Log
-            this._logger.LogError(ex, "Unhandled exception. CorrelationId={CorrelationId}", correlationId);
+            _logger.LogError(ex, "Unhandled exception. CorrelationId={CorrelationId}", correlationId);
 
             // Write response
             context.Response.Clear();

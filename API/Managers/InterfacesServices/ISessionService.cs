@@ -1,4 +1,5 @@
 ﻿using Api.Models;
+using MySqlConnector;
 
 namespace Api.Managers.InterfacesServices;
 
@@ -21,5 +22,10 @@ public interface ISessionService
     /// </summary>
     /// <param name="sessionId">The session identifier.</param>
     /// <returns>The <see cref="AppSession"/> if found; otherwise, null.</returns>
-    Task<AppSession> GetSessionAsync(string sessionId);
+    Task<AppSession?> GetSessionAsync(string sessionId);
+    
+    Task DeleteAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx);
+
+    // ➕ Méthode “haut niveau” (ouvre sa propre connexion) – utile hors transactions globales
+    Task DeleteAsync(string sessionId);
 }

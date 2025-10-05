@@ -7,128 +7,95 @@ using Api.Managers.InterfacesServices;
 using API.Managers.InterfacesServices;
 using Api.Models;
 
-namespace API.Managers;
-
 /// <summary>
-/// Handles authentication logic, including PKCE flow, token exchange, and session management.
+/// Handles authentication-related operations, including starting authentication flows, handling callbacks, and logging out.
 /// </summary>
-public class AuthManager : IAuthManager
+public class AuthManager(
+    ICryptoHelper crypto,
+    IUrlBuilderHelper urlBuilder,
+    IPkceDao pkceDao,
+    ISpotifyOAuthHelper oauth,
+    ITokenDao tokenDao,
+    ISessionService session,
+    IDeeplinkHelper deeplink,
+    IClockService clock,
+    IConfigService config,
+    IAccessTokenDao accessTokenDao,
+    IPlaylistSelectionDao playlistSelectionDao,
+    IPlaylistCacheDao playlistCacheDao,
+    IUserProfileCacheDao userProfileCacheDao,
+    ITokenDenyListService denylist,
+    IHashService hash,
+    IAuditService audit,
+    ITransactionRunner txRunner)
+    : IAuthManager
 {
-    private readonly ICryptoHelper _crypto;
-    private readonly IUrlBuilderHelper _urlBuilder;
-    private readonly IPkceDao _pkceDao;
-    private readonly ISpotifyOAuthHelper _oauth;
-    private readonly ITokenDao _tokenDao;
-    private readonly ISessionService _session;
-    private readonly IDeeplinkHelper _deeplink;
-    private readonly IClockService _clock;
-    private readonly IConfigService _config;
+    private readonly ICryptoHelper _crypto = crypto ?? throw new ArgumentNullException(nameof(crypto));
+    private readonly IUrlBuilderHelper _urlBuilder = urlBuilder ?? throw new ArgumentNullException(nameof(urlBuilder));
+    private readonly IPkceDao _pkceDao = pkceDao ?? throw new ArgumentNullException(nameof(pkceDao));
+    private readonly ISpotifyOAuthHelper _oauth = oauth ?? throw new ArgumentNullException(nameof(oauth));
+    private readonly ITokenDao _tokenDao = tokenDao ?? throw new ArgumentNullException(nameof(tokenDao));
+    private readonly ISessionService _session = session ?? throw new ArgumentNullException(nameof(session));
+    private readonly IDeeplinkHelper _deeplink = deeplink ?? throw new ArgumentNullException(nameof(deeplink));
+    private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+    private readonly IConfigService _config = config ?? throw new ArgumentNullException(nameof(config));
+    private readonly IAccessTokenDao _accessTokenDao = accessTokenDao ?? throw new ArgumentNullException(nameof(accessTokenDao));
+    private readonly IPlaylistSelectionDao _playlistSelectionDao = playlistSelectionDao ?? throw new ArgumentNullException(nameof(playlistSelectionDao));
+    private readonly IPlaylistCacheDao _playlistCacheDao = playlistCacheDao ?? throw new ArgumentNullException(nameof(playlistCacheDao));
+    private readonly IUserProfileCacheDao _userProfileCacheDao = userProfileCacheDao ?? throw new ArgumentNullException(nameof(userProfileCacheDao));
+    private readonly ITokenDenyListService _denylist = denylist ?? throw new ArgumentNullException(nameof(denylist));
+    private readonly IHashService _hash = hash ?? throw new ArgumentNullException(nameof(hash));
+    private readonly IAuditService _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+    private readonly ITransactionRunner _txRunner = txRunner ?? throw new ArgumentNullException(nameof(txRunner));
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AuthManager"/> class.
+    /// Starts the authentication process by generating a state and PKCE challenge, saving them, and returning the authorization URL and state.
     /// </summary>
-    /// <param name="crypto">The cryptography helper.</param>
-    /// <param name="urlBuilder">The URL builder helper.</param>
-    /// <param name="pkceDao">The PKCE DAO.</param>
-    /// <param name="oauth">The Spotify OAuth helper.</param>
-    /// <param name="tokenDao">The token DAO.</param>
-    /// <param name="session">The session service.</param>
-    /// <param name="deeplink">The deeplink helper.</param>
-    /// <param name="clock">The clock service.</param>
-    /// <param name="config">The configuration service.</param>
-    /// <exception cref="ArgumentNullException">Thrown if any dependency is null.</exception>
-    public AuthManager(
-        ICryptoHelper crypto,
-        IUrlBuilderHelper urlBuilder,
-        IPkceDao pkceDao,
-        ISpotifyOAuthHelper oauth,
-        ITokenDao tokenDao,
-        ISessionService session,
-        IDeeplinkHelper deeplink,
-        IClockService clock,
-        IConfigService config)
-    {
-        _crypto = crypto ?? throw new ArgumentNullException(nameof(crypto));
-        _urlBuilder = urlBuilder ?? throw new ArgumentNullException(nameof(urlBuilder));
-        _pkceDao = pkceDao ?? throw new ArgumentNullException(nameof(pkceDao));
-        _oauth = oauth ?? throw new ArgumentNullException(nameof(oauth));
-        _tokenDao = tokenDao ?? throw new ArgumentNullException(nameof(tokenDao));
-        _session = session ?? throw new ArgumentNullException(nameof(session));
-        _deeplink = deeplink ?? throw new ArgumentNullException(nameof(deeplink));
-        _clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        _config = config ?? throw new ArgumentNullException(nameof(config));
-    }
-
-    /// <summary>
-    /// Starts the PKCE authentication process and returns the authorization URL and state.
-    /// </summary>
-    /// <param name="scopes">The list of scopes requested for authentication.</param>
-    /// <returns>
-    /// An <see cref="AuthStartResponseDto"/> containing the authorization URL and state.
-    /// </returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="scopes"/> is null or empty.</exception>
+    /// <param name="scopes">The list of scopes to request.</param>
+    /// <returns>An <see cref="AuthStartResponseDto"/> containing the authorization URL and state.</returns>
+    /// <exception cref="ArgumentException">Thrown if scopes is null or empty.</exception>
     public async Task<AuthStartResponseDto> StartAuthAsync(IList<string> scopes)
     {
         if (scopes == null || scopes.Count == 0)
-        {
             throw new ArgumentException("scopes cannot be null or empty.", nameof(scopes));
-        }
 
         string state = _crypto.GenerateState(32);
-        string codeVerifier;
-        string codeChallenge;
-        _crypto.GeneratePkce(out codeVerifier, out codeChallenge);
+        _crypto.GeneratePkce(out string codeVerifier, out string codeChallenge);
 
         DateTime now = _clock.GetUtcNow();
         DateTime exp = now.AddMinutes(_config.GetPkceTtlMinutes());
 
-        PkceEntry entry = new PkceEntry(state, codeVerifier, codeChallenge, exp);
+        var entry = new PkceEntry(state, codeVerifier, codeChallenge, exp);
         await _pkceDao.SaveAsync(entry);
 
-        string[] scopeArray = scopes.ToArray();
         string url = _urlBuilder.BuildAuthorizeUrl(
             _config.GetSpotifyClientId(),
             _config.GetSpotifyRedirectUri(),
-            scopeArray,
+            scopes.ToArray(),
             state,
             codeChallenge,
             "S256"
         );
 
-        AuthStartResponseDto response = new AuthStartResponseDto(url, state);
-        return response;
+        return new AuthStartResponseDto(url, state);
     }
 
     /// <summary>
-    /// Handles the OAuth callback, exchanges the code for tokens, creates a session, and returns the deeplink.
+    /// Handles the OAuth callback by exchanging the code for tokens, creating a session, and returning a deep link.
     /// </summary>
-    /// <param name="code">The authorization code returned by the OAuth provider.</param>
-    /// <param name="state">The PKCE state parameter.</param>
+    /// <param name="code">The authorization code received from the provider.</param>
+    /// <param name="state">The state parameter to validate the request.</param>
     /// <param name="deviceInfo">Optional device information.</param>
-    /// <returns>
-    /// The deeplink URL to redirect the user to the mobile app.
-    /// </returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="code"/> or <paramref name="state"/> is null or empty.</exception>
+    /// <returns>A deep link string for the authenticated session.</returns>
+    /// <exception cref="ArgumentException">Thrown if code or state is null or empty.</exception>
     /// <exception cref="InvalidStateException">Thrown if the state is unknown or expired.</exception>
-    /// <exception cref="TokenExchangeFailedException">Thrown if the token exchange fails.</exception>
+    /// <exception cref="TokenExchangeFailedException">Thrown if token exchange fails.</exception>
     public async Task<string> HandleCallbackAsync(string code, string state, string? deviceInfo)
     {
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            throw new ArgumentException("code cannot be null or empty.", nameof(code));
-        }
+        if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("code cannot be null or empty.", nameof(code));
+        if (string.IsNullOrWhiteSpace(state)) throw new ArgumentException("state cannot be null or empty.", nameof(state));
 
-        if (string.IsNullOrWhiteSpace(state))
-        {
-            throw new ArgumentException("state cannot be null or empty.", nameof(state));
-        }
-
-        PkceEntry entry = await _pkceDao.GetAsync(state);
-        if (entry == null)
-        {
-            throw new InvalidStateException("Unknown state.");
-        }
-
+        var entry = await _pkceDao.GetAsync(state) ?? throw new InvalidStateException("Unknown state.");
         DateTime now = _clock.GetUtcNow();
         if (entry.IsExpired(now))
         {
@@ -159,13 +126,52 @@ public class AuthManager : IAuthManager
             tokens.AccessExpiresAt
         );
 
-        DateTime sessionExp = now.AddMinutes(_config.GetSessionTtlMinutes());
-        string safeDeviceInfo = deviceInfo ?? string.Empty;
-        string sessionId = await _session.CreateSessionAsync(safeDeviceInfo, now, sessionExp);
+        string sessionId = await _session.CreateSessionAsync(
+            deviceInfo ?? string.Empty,
+            now,
+            now.AddMinutes(_config.GetSessionTtlMinutes())
+        );
         await _tokenDao.AttachToSessionAsync(tokenSetId, sessionId);
         await _pkceDao.DeleteAsync(state);
 
-        string deepLink = _deeplink.BuildDeepLink(sessionId);
-        return deepLink;
+        return _deeplink.BuildDeepLink(sessionId);
+    }
+
+    /// <summary>
+    /// Logs out a user by denylisting the refresh token, purging all session-related data, and auditing the operation.
+    /// </summary>
+    /// <param name="sessionId">The session identifier to log out.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="ArgumentException">Thrown if sessionId is null or empty.</exception>
+    public async Task LogoutAsync(string sessionId)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId))
+            throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
+
+        DateTime now = _clock.GetUtcNow();
+
+        TokenSet? tokenSet = await _tokenDao.GetBySessionAsync(sessionId);
+
+        if (!string.IsNullOrWhiteSpace(tokenSet?.RefreshTokenEnc))
+            await _denylist.AddAsync(_hash.Sha256Base64(tokenSet.RefreshTokenEnc), "logout", now.AddDays(90));
+
+        await _txRunner.RunInTransaction(async (conn, tx) =>
+            {
+                await _accessTokenDao.DeleteBySessionAsync(sessionId, conn, tx);
+                await _playlistSelectionDao.DeleteBySessionAsync(sessionId, conn, tx);
+
+                if (!string.IsNullOrWhiteSpace(tokenSet?.ProviderUserId))
+                {
+                    await _playlistCacheDao.DeleteByProviderUserAsync(tokenSet.ProviderUserId, conn, tx);
+                    await _userProfileCacheDao.DeleteByProviderUserAsync(tokenSet.ProviderUserId, conn, tx);
+                }
+
+                await _playlistCacheDao.DeleteLinksBySessionAsync(sessionId, conn, tx);
+                await _tokenDao.DeleteBySessionAsync(sessionId, conn, tx);
+                await _session.DeleteAsync(sessionId, conn, tx);
+            }
+        );
+
+        _audit.LogAuth("spotify", "SpotifyLogout", "purge DB + denylist");
     }
 }

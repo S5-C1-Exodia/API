@@ -2,39 +2,46 @@
 using API.Managers.InterfacesServices;
 using Api.Models;
 using MySqlConnector;
+using System.Data;
 
 namespace API.DAO;
 
-using System;
-using System.Data;
-using System.Threading.Tasks;
-
+/// <summary>
+/// Data Access Object for PKCE entries.
+/// Provides methods to save, retrieve, and delete PKCE entries in the database.
+/// </summary>
 public class PkceDao : IPkceDao
 {
     private readonly ISqlConnectionFactory _factory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PkceDao"/> class.
+    /// </summary>
+    /// <param name="factory">The SQL connection factory used to create database connections.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="factory"/> is null.</exception>
     public PkceDao(ISqlConnectionFactory factory)
     {
-        if (factory == null)
-        {
-            throw new ArgumentNullException(nameof(factory));
-        }
-
-        this._factory = factory;
+        _factory = factory ?? throw new ArgumentNullException(nameof(factory));
     }
 
+    /// <summary>
+    /// Saves a PKCE entry to the database.
+    /// </summary>
+    /// <param name="entry">The <see cref="PkceEntry"/> to save.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="entry"/> is null.</exception>
+    /// <exception cref="DataException">Thrown if the number of affected rows is not 1.</exception>
+    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
     public async Task SaveAsync(PkceEntry entry)
     {
         if (entry == null)
-        {
             throw new ArgumentNullException(nameof(entry));
-        }
 
         const string sql = @"
-INSERT INTO PKCEENTRY (State, CodeVerifier, CodeChallenge, ExpiresAt)
-VALUES (@state, @verifier, @challenge, @exp)";
+    INSERT INTO PKCEENTRY (State, CodeVerifier, CodeChallenge, ExpiresAt)
+    VALUES (@state, @verifier, @challenge, @exp)";
 
-        MySqlConnection conn = this._factory.Create();
+        MySqlConnection conn = _factory.Create();
         try
         {
             await conn.OpenAsync();
@@ -46,10 +53,9 @@ VALUES (@state, @verifier, @challenge, @exp)";
             cmd.Parameters.AddWithValue("@exp", entry.ExpiresAt);
             int affected = await cmd.ExecuteNonQueryAsync();
             if (affected != 1)
-            {
-                throw new DataException("Unexpected number of rows inserted for PKCEENTRY.");
-            }
+                throw new DataException("Unexpected number of rows inserted for PKCEENTRY."); 
         }
+        
         finally
         {
             await conn.CloseAsync();
@@ -57,20 +63,28 @@ VALUES (@state, @verifier, @challenge, @exp)";
         }
     }
 
-    public async Task<PkceEntry> GetAsync(string state)
+    /// <summary>
+    /// Retrieves a PKCE entry from the database by its state.
+    /// </summary>
+    /// <param name="state">The state identifier of the PKCE entry.</param>
+    /// <returns>
+    /// A task representing the asynchronous operation. The task result contains the <see cref="PkceEntry"/>
+    /// if found; otherwise, <c>null</c>.
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="state"/> is null or empty.</exception>
+    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    public async Task<PkceEntry?> GetAsync(string state)
     {
         if (string.IsNullOrWhiteSpace(state))
-        {
             throw new ArgumentException("state cannot be null or empty.", nameof(state));
-        }
 
         const string sql = @"
-SELECT State, CodeVerifier, CodeChallenge, ExpiresAt
-FROM PKCEENTRY
-WHERE State = @state
-LIMIT 1";
+    SELECT State, CodeVerifier, CodeChallenge, ExpiresAt
+    FROM PKCEENTRY
+    WHERE State = @state
+    LIMIT 1";
 
-        MySqlConnection conn = this._factory.Create();
+        MySqlConnection conn = _factory.Create();
         try
         {
             await conn.OpenAsync();
@@ -82,9 +96,7 @@ LIMIT 1";
             try
             {
                 if (!reader.HasRows)
-                {
                     return null;
-                }
 
                 if (await reader.ReadAsync())
                 {
@@ -110,6 +122,13 @@ LIMIT 1";
         }
     }
 
+    /// <summary>
+    /// Deletes a PKCE entry from the database by its state.
+    /// </summary>
+    /// <param name="state">The state identifier of the PKCE entry to delete.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="state"/> is null or empty.</exception>
+    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
     public async Task DeleteAsync(string state)
     {
         if (string.IsNullOrWhiteSpace(state))
@@ -119,7 +138,7 @@ LIMIT 1";
 
         const string sql = @"DELETE FROM PKCEENTRY WHERE State = @state";
 
-        MySqlConnection conn = this._factory.Create();
+        MySqlConnection conn = _factory.Create();
         try
         {
             await conn.OpenAsync();

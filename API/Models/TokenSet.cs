@@ -30,14 +30,14 @@
         public TokenSet(long tokenSetId, string provider, string providerUserId, string refreshTokenEnc,
             string scope, DateTime accessExpiresAt, DateTime updatedAt, string sessionId)
         {
-            this.TokenSetId = tokenSetId;
-            this.Provider = provider;
-            this.ProviderUserId = providerUserId;
-            this.RefreshTokenEnc = refreshTokenEnc;
-            this.Scope = scope;
-            this.AccessExpiresAt = accessExpiresAt;
-            this.UpdatedAt = updatedAt;
-            this.SessionId = sessionId;
+            TokenSetId = tokenSetId;
+            Provider = provider;
+            ProviderUserId = providerUserId;
+            RefreshTokenEnc = refreshTokenEnc;
+            Scope = scope;
+            AccessExpiresAt = accessExpiresAt;
+            UpdatedAt = updatedAt;
+            SessionId = sessionId;
         }
 
         /// <summary>
@@ -46,7 +46,7 @@
         /// <exception cref="ArgumentException">Thrown if value is not positive.</exception>
         public long TokenSetId
         {
-            get { return this._tokenSetId; }
+            get { return _tokenSetId; }
             set
             {
                 if (value <= 0)
@@ -54,7 +54,7 @@
                     throw new ArgumentException("TokenSetId must be positive.", nameof(value));
                 }
 
-                this._tokenSetId = value;
+                _tokenSetId = value;
             }
         }
 
@@ -64,7 +64,7 @@
         /// <exception cref="ArgumentException">Thrown if value is null or empty.</exception>
         public string Provider
         {
-            get { return this._provider; }
+            get { return _provider; }
             set
             {
                 if (string.IsNullOrWhiteSpace(value))
@@ -72,7 +72,7 @@
                     throw new ArgumentException("Provider cannot be null or empty.", nameof(value));
                 }
 
-                this._provider = value;
+                _provider = value;
             }
         }
 
@@ -81,8 +81,8 @@
         /// </summary>
         public string ProviderUserId
         {
-            get { return this._providerUserId; }
-            set { this._providerUserId = value ?? string.Empty; }
+            get { return _providerUserId; }
+            set { _providerUserId = value ?? string.Empty; }
         }
 
         /// <summary>
@@ -90,8 +90,8 @@
         /// </summary>
         public string RefreshTokenEnc
         {
-            get { return this._refreshTokenEnc; }
-            set { this._refreshTokenEnc = value ?? string.Empty; }
+            get { return _refreshTokenEnc; }
+            set { _refreshTokenEnc = value ?? string.Empty; }
         }
 
         /// <summary>
@@ -99,8 +99,8 @@
         /// </summary>
         public string Scope
         {
-            get { return this._scope; }
-            set { this._scope = value ?? string.Empty; }
+            get { return _scope; }
+            set { _scope = value ?? string.Empty; }
         }
 
         /// <summary>
@@ -108,8 +108,8 @@
         /// </summary>
         public DateTime AccessExpiresAt
         {
-            get { return this._accessExpiresAt; }
-            set { this._accessExpiresAt = value; }
+            get { return _accessExpiresAt; }
+            set { _accessExpiresAt = value; }
         }
 
         /// <summary>
@@ -117,8 +117,8 @@
         /// </summary>
         public DateTime UpdatedAt
         {
-            get { return this._updatedAt; }
-            set { this._updatedAt = value; }
+            get { return _updatedAt; }
+            set { _updatedAt = value; }
         }
 
         /// <summary>
@@ -126,8 +126,8 @@
         /// </summary>
         public string SessionId
         {
-            get { return this._sessionId; }
-            set { this._sessionId = value ?? string.Empty; }
+            get { return _sessionId; }
+            set { _sessionId = value ?? string.Empty; }
         }
     }
 }

@@ -42,47 +42,47 @@ public class ConfigService : IConfigService
         if (sessionTtlMinutes <= 0)
             throw new ArgumentException("sessionTtlMinutes must be positive.", nameof(sessionTtlMinutes));
 
-        this._spotifyClientId = spotifyClientId;
-        this._spotifyRedirectUri = spotifyRedirectUri;
-        this._spotifyAuthorizeEndpoint = spotifyAuthorizeEndpoint;
-        this._spotifyTokenEndpoint = spotifyTokenEndpoint;
-        this._deeplinkSchemeHost = deeplinkSchemeHost;
-        this._pkceTtlMinutes = pkceTtlMinutes;
-        this._sessionTtlMinutes = sessionTtlMinutes;
+        _spotifyClientId = spotifyClientId;
+        _spotifyRedirectUri = spotifyRedirectUri;
+        _spotifyAuthorizeEndpoint = spotifyAuthorizeEndpoint;
+        _spotifyTokenEndpoint = spotifyTokenEndpoint;
+        _deeplinkSchemeHost = deeplinkSchemeHost;
+        _pkceTtlMinutes = pkceTtlMinutes;
+        _sessionTtlMinutes = sessionTtlMinutes;
     }
 
     public string GetSpotifyClientId()
     {
-        return this._spotifyClientId;
+        return _spotifyClientId;
     }
 
     public string GetSpotifyRedirectUri()
     {
-        return this._spotifyRedirectUri;
+        return _spotifyRedirectUri;
     }
 
     public string GetSpotifyAuthorizeEndpoint()
     {
-        return this._spotifyAuthorizeEndpoint;
+        return _spotifyAuthorizeEndpoint;
     }
 
     public string GetSpotifyTokenEndpoint()
     {
-        return this._spotifyTokenEndpoint;
+        return _spotifyTokenEndpoint;
     }
 
     public string GetDeeplinkSchemeHost()
     {
-        return this._deeplinkSchemeHost;
+        return _deeplinkSchemeHost;
     }
 
     public int GetPkceTtlMinutes()
     {
-        return this._pkceTtlMinutes;
+        return _pkceTtlMinutes;
     }
 
     public int GetSessionTtlMinutes()
     {
-        return this._sessionTtlMinutes;
+        return _sessionTtlMinutes;
     }
 }

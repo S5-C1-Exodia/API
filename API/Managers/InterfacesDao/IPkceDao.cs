@@ -21,7 +21,7 @@ public interface IPkceDao
     /// <returns>
     /// A task representing the asynchronous operation. The task result contains the <see cref="PkceEntry"/> if found; otherwise, null.
     /// </returns>
-    Task<PkceEntry> GetAsync(string state);
+    Task<PkceEntry?> GetAsync(string state);
 
     /// <summary>
     /// Deletes a PKCE entry by its state.

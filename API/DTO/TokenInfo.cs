@@ -20,11 +20,11 @@ public class TokenInfo
     /// </exception>
     public TokenInfo(string accessToken, string refreshToken, DateTime accessExpiresAt, string scope, string providerUserId)
     {
-        this.AccessToken = accessToken;
-        this.RefreshToken = refreshToken;
-        this.AccessExpiresAt = accessExpiresAt;
-        this.Scope = scope;
-        this.ProviderUserId = providerUserId;
+        AccessToken = accessToken;
+        RefreshToken = refreshToken;
+        AccessExpiresAt = accessExpiresAt;
+        Scope = scope;
+        ProviderUserId = providerUserId;
     }
 
     /// <summary>

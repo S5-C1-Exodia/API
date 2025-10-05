@@ -23,11 +23,11 @@
         /// <param name="expiresAt">The UTC expiration date and time.</param>
         public AppSession(string sessionId, string deviceInfo, DateTime createdAt, DateTime lastSeenAt, DateTime expiresAt)
         {
-            this.SessionId = sessionId;
-            this.DeviceInfo = deviceInfo;
-            this.CreatedAt = createdAt;
-            this.LastSeenAt = lastSeenAt;
-            this.ExpiresAt = expiresAt;
+            SessionId = sessionId;
+            DeviceInfo = deviceInfo;
+            CreatedAt = createdAt;
+            LastSeenAt = lastSeenAt;
+            ExpiresAt = expiresAt;
         }
 
         /// <summary>
@@ -36,7 +36,7 @@
         /// <exception cref="ArgumentException">Thrown if value is null or empty.</exception>
         public string SessionId
         {
-            get { return this._sessionId; }
+            get { return _sessionId; }
             set
             {
                 if (string.IsNullOrWhiteSpace(value))
@@ -44,7 +44,7 @@
                     throw new ArgumentException("SessionId cannot be null or empty.", nameof(value));
                 }
 
-                this._sessionId = value;
+                _sessionId = value;
             }
         }
 
@@ -53,8 +53,8 @@
         /// </summary>
         public string DeviceInfo
         {
-            get { return this._deviceInfo; }
-            set { this._deviceInfo = value ?? string.Empty; }
+            get { return _deviceInfo; }
+            set { _deviceInfo = value ?? string.Empty; }
         }
 
         /// <summary>
@@ -62,8 +62,8 @@
         /// </summary>
         public DateTime CreatedAt
         {
-            get { return this._createdAt; }
-            set { this._createdAt = value; }
+            get { return _createdAt; }
+            set { _createdAt = value; }
         }
 
         /// <summary>
@@ -71,8 +71,8 @@
         /// </summary>
         public DateTime LastSeenAt
         {
-            get { return this._lastSeenAt; }
-            set { this._lastSeenAt = value; }
+            get { return _lastSeenAt; }
+            set { _lastSeenAt = value; }
         }
 
         /// <summary>
@@ -80,8 +80,8 @@
         /// </summary>
         public DateTime ExpiresAt
         {
-            get { return this._expiresAt; }
-            set { this._expiresAt = value; }
+            get { return _expiresAt; }
+            set { _expiresAt = value; }
         }
     }
 }
