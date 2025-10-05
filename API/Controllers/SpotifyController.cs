@@ -1,60 +1,79 @@
 ﻿using API.Controllers.InterfacesManagers;
 using API.DTO;
+using API.Errors;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
 
 namespace API.Controllers;
 
+/// <summary>
+/// Controller for Spotify authentication and session management.
+/// </summary>
 [ApiController]
 [Route("api/spotify")]
-public class SpotifyController(IAuthManager authManager) : ControllerBase
+public class SpotifyController : ControllerBase
 {
-    private readonly IAuthManager _authManager = authManager ?? throw new ArgumentNullException(nameof(authManager));
+    private readonly IAuthManager _authManager;
 
     /// <summary>
-    /// Starts the Spotify PKCE authentication and returns the authorization URL and state.
+    /// Initializes a new instance of the <see cref="SpotifyController"/> class.
     /// </summary>
-    /// <param name="request">The request containing the scopes requested by the mobile client.</param>
-    /// <returns>Authorization URL and state for the OAuth flow.</returns>
+    /// <param name="authManager">The authentication manager.</param>
+    public SpotifyController(IAuthManager authManager)
+    {
+        _authManager = authManager ?? throw new ArgumentNullException(nameof(authManager));
+    }
+
+    /// <summary>
+    /// Starts the authentication process and returns the authorization URL and state.
+    /// </summary>
+    /// <param name="scopes">The list of scopes to request.</param>
+    /// <returns>An <see cref="AuthStartResponseDto"/> containing the authorization URL and state.</returns>
+    /// <response code="200">Returns the authorization URL and state.</response>
+    /// <response code="400">If the scopes are invalid.</response>
+    /// <exception cref="ArgumentException">Thrown if scopes is null or empty.</exception>
     [HttpPost("auth/start")]
-    public async Task<ActionResult<AuthStartResponseDto>> StartAuth([FromBody] AuthStartRequestDto request)
+    [ProducesResponseType(typeof(AuthStartResponseDto), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> StartAuth([FromBody] IList<string> scopes)
     {
-        AuthStartResponseDto response = await _authManager.StartAuthAsync(request.Scopes);
-        return Ok(response);
+        var result = await _authManager.StartAuthAsync(scopes);
+        return Ok(result);
     }
 
     /// <summary>
-    /// Spotify OAuth callback (code and state). Creates the session and redirects to the deeplink (swipez://...).
+    /// Handles the OAuth callback, exchanges the code for tokens, and returns a deep link.
     /// </summary>
-    /// <param name="code">The Spotify authorization code.</param>
-    /// <param name="state">The PKCE state.</param>
-    /// <param name="device">Optional: device info fallback if header is missing.</param>
-    /// <returns>Redirect (302) to the mobile app deeplink.</returns>
-    [HttpGet("callback")]
-    public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state,
-        [FromQuery] string? device = "")
+    /// <param name="code">The authorization code received from the provider.</param>
+    /// <param name="state">The state parameter to validate the request.</param>
+    /// <param name="deviceInfo">Optional device information.</param>
+    /// <returns>A deep link string for the authenticated session.</returns>
+    /// <response code="200">Returns the deep link for the authenticated session.</response>
+    /// <response code="400">If the code or state is invalid.</response>
+    /// <exception cref="ArgumentException">Thrown if code or state is null or empty.</exception>
+    /// <exception cref="InvalidStateException">Thrown if the state is unknown or expired.</exception>
+    /// <exception cref="TokenExchangeFailedException">Thrown if token exchange fails.</exception>
+    [HttpPost("callback")]
+    [ProducesResponseType(typeof(string), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state, [FromQuery] string? deviceInfo)
     {
-        string deviceInfo = device ?? string.Empty;
-        bool hasHeader = Request.Headers.TryGetValue("X-Device-Info", out StringValues headerValues);
-        if (hasHeader && !string.IsNullOrEmpty(headerValues.ToString()))
-        {
-            deviceInfo = headerValues.ToString();
-        }
-
-        string deeplink = await _authManager.HandleCallbackAsync(code, state, deviceInfo);
-        return Redirect(deeplink);
+        var result = await _authManager.HandleCallbackAsync(code, state, deviceInfo);
+        return Ok(result);
     }
 
     /// <summary>
-    /// Disconnects the user from Spotify by revoking tokens and clearing session data.
+    /// Logs out a user by purging all session-related data and denylisting the refresh token.
     /// </summary>
-    /// <param name="sessionId">The current session identifier provided by the mobile client in the header X-Session-Id.</param>
-    /// <returns>204 No Content if successful (idempotent).</returns>
+    /// <param name="sessionId">The session identifier to log out.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <response code="204">Logout successful.</response>
+    /// <response code="400">If the sessionId is invalid.</response>
+    /// <exception cref="ArgumentException">Thrown if sessionId is null or empty.</exception>
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout([FromHeader(Name = "X-Session-Id")] string sessionId)
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> Logout([FromQuery] string sessionId)
     {
-        if (string.IsNullOrWhiteSpace(sessionId))
-            return BadRequest("Missing X-Session-Id");
 
         await _authManager.LogoutAsync(sessionId);
         return NoContent();

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using Api.Managers.InterfacesDao;
-using Api.Managers.InterfacesServices;
+﻿using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
 
 namespace API.Services
@@ -12,10 +9,6 @@ namespace API.Services
     /// <param name="dao">Data Access Object for denylisted refresh tokens.</param>
     /// <param name="clock">Service for retrieving the current time.</param>
     /// <exception cref="ArgumentNullException">Thrown if any dependency is null.</exception>
-    /// <summary>
-    /// Service métier : orchestrer la denylist via le DAO, gérer les dates/TTL.
-    /// Aucun SQL ici (SRP/DIP).
-    /// </summary>
     public class TokenDenyListService(IDenylistedRefreshDao dao, IClockService clock) : ITokenDenyListService
     {
         private readonly IDenylistedRefreshDao _dao = dao ?? throw new ArgumentNullException(nameof(dao));

@@ -18,5 +18,5 @@ public interface IErrorMapper
     /// <returns>
     /// An <see cref="ApiError"/> representing the mapped error.
     /// </returns>
-    ApiError Map(Exception exception, string correlationId, bool includeDetails, DateTime nowUtc, out int httpStatus);
+    ApiError Map(Exception? exception, string correlationId, bool includeDetails, DateTime nowUtc, out int httpStatus);
 }

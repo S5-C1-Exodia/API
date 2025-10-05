@@ -1,5 +1,4 @@
 ﻿using API.Managers.InterfacesServices;
-using API.Managers.InterfacesServices;
 using MySqlConnector;
 
 namespace API.Services
@@ -27,7 +26,7 @@ namespace API.Services
 
             try
             {
-                await work(conn, (MySqlTransaction)tx);
+                await work(conn, tx);
                 await tx.CommitAsync();
             }
             catch
