@@ -19,7 +19,7 @@ public class PkceDao : IPkceDao
     /// </summary>
     /// <param name="factory">The SQL connection factory used to create database connections.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="factory"/> is null.</exception>
-    public PkceDao(ISqlConnectionFactory? factory)
+    public PkceDao(ISqlConnectionFactory factory)
     {
         _factory = factory ?? throw new ArgumentNullException(nameof(factory));
     }
@@ -32,7 +32,7 @@ public class PkceDao : IPkceDao
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="entry"/> is null.</exception>
     /// <exception cref="DataException">Thrown if the number of affected rows is not 1.</exception>
     /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
-    public async Task SaveAsync(PkceEntry? entry)
+    public async Task SaveAsync(PkceEntry entry)
     {
         if (entry == null)
             throw new ArgumentNullException(nameof(entry));
