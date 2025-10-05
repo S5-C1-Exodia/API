@@ -1,5 +1,6 @@
 ﻿using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
+using Api.Models;
 using MySqlConnector;
 
 namespace API.DAO;
@@ -35,13 +36,13 @@ SELECT LAST_INSERT_ID();";
             MySqlCommand cmd = conn.CreateCommand();
             cmd.CommandText = sql;
             cmd.Parameters.AddWithValue("@provider", provider);
-            cmd.Parameters.AddWithValue("@puid", providerUserId ?? string.Empty);
+            cmd.Parameters.AddWithValue("@puid", providerUserId);
             cmd.Parameters.AddWithValue("@refresh", refreshTokenEnc);
-            cmd.Parameters.AddWithValue("@scope", scope ?? string.Empty);
+            cmd.Parameters.AddWithValue("@scope", scope);
             cmd.Parameters.AddWithValue("@accessExp", accessExpiresAt);
             cmd.Parameters.AddWithValue("@updatedAt", now);
 
-            object scalar = await cmd.ExecuteScalarAsync();
+            object scalar = await cmd.ExecuteScalarAsync() ?? throw new DataException("Failed to execute insert for TOKENSET.");
             if (scalar == null || scalar == DBNull.Value)
                 throw new DataException("Failed to retrieve LAST_INSERT_ID for TOKENSET.");
 
@@ -91,5 +92,74 @@ WHERE TokenSetId = @id";
             await conn.CloseAsync();
             await conn.DisposeAsync();
         }
+    }
+
+    public async Task<TokenSet?> GetBySessionAsync(string sessionId)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId))
+            throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
+
+        const string sql = @"
+SELECT TokenSetId, Provider, ProviderUserId, RefreshTokenEnc, Scope, AccessExpiresAt, UpdatedAt, SessionId
+FROM TOKENSET
+WHERE SessionId = @sid
+LIMIT 1";
+
+        await using var conn = _factory.Create();
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("@sid", sessionId);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (!reader.HasRows) return null;
+
+        if (await reader.ReadAsync())
+        {
+            // Map minimal vers ton modèle TokenSet (à adapter selon ton type exact)
+            return new TokenSet(
+                tokenSetId: reader.GetInt64("TokenSetId"),
+                provider: reader.GetString("Provider"),
+                providerUserId: reader.GetString("ProviderUserId"),
+                refreshTokenEnc: reader.GetString("RefreshTokenEnc"),
+                scope: reader.IsDBNull(reader.GetOrdinal("Scope")) ? string.Empty : reader.GetString("Scope"),
+                accessExpiresAt: reader.GetDateTime("AccessExpiresAt"),
+                updatedAt: reader.GetDateTime("UpdatedAt"),
+                sessionId: (reader.IsDBNull(reader.GetOrdinal("SessionId")) ? null : reader.GetString("SessionId")) ??
+                           throw new InvalidOperationException("SessionId should not be null here.")
+            );
+        }
+
+        return null;
+    }
+
+    public async Task DeleteBySessionAsync(string sessionId)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId))
+            throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
+
+        const string sql = "delete from tokenset where SessionId = @sid";
+
+        await using var conn = _factory.Create();
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("@sid", sessionId);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task DeleteBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId))
+            throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
+        if (conn is null || tx is null) throw new ArgumentNullException(nameof(conn));
+
+        const string sql = "delete from tokenset where SessionId = @sid";
+
+        using var cmd = conn.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = sql;
+        cmd.Parameters.AddWithValue("@sid", sessionId);
+        await cmd.ExecuteNonQueryAsync();
     }
 }

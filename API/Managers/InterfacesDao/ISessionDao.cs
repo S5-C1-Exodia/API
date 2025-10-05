@@ -1,4 +1,5 @@
 ﻿using Api.Models;
+using MySqlConnector;
 
 namespace Api.Managers.InterfacesDao;
 
@@ -22,4 +23,10 @@ public interface ISessionDao
     /// A task representing the asynchronous operation. The task result contains the <see cref="AppSession"/> if found; otherwise, null.
     /// </returns>
     Task<AppSession> GetAsync(string sessionId);
+    
+    Task DeleteAsync(string sessionId);
+
+    public Task DeleteAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx);
+
+
 }
