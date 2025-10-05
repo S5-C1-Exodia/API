@@ -9,68 +9,52 @@ using Api.Models;
 
 namespace API.Managers;
 
-public class AuthManager : IAuthManager
+public class AuthManager(
+    ICryptoHelper crypto,
+    IUrlBuilderHelper urlBuilder,
+    IPkceDao pkceDao,
+    ISpotifyOAuthHelper oauth,
+    ITokenDao tokenDao,
+    ISessionService session,
+    IDeeplinkHelper deeplink,
+    IClockService clock,
+    IConfigService config,
+    IAccessTokenDao accessTokenDao,
+    IPlaylistSelectionDao playlistSelectionDao,
+    IPlaylistCacheDao playlistCacheDao,
+    IUserProfileCacheDao userProfileCacheDao,
+    ITokenDenyListService denylist,
+    IHashService hash,
+    IAuditService audit,
+    ITransactionRunner txRunner)
+    : IAuthManager
 {
-    private readonly ICryptoHelper _crypto;
-    private readonly IUrlBuilderHelper _urlBuilder;
-    private readonly IPkceDao _pkceDao;
-    private readonly ISpotifyOAuthHelper _oauth;
-    private readonly ITokenDao _tokenDao;
-    private readonly ISessionService _session;
-    private readonly IDeeplinkHelper _deeplink;
-    private readonly IClockService _clock;
-    private readonly IConfigService _config;
+    private readonly ICryptoHelper _crypto = crypto ?? throw new ArgumentNullException(nameof(crypto));
+    private readonly IUrlBuilderHelper _urlBuilder = urlBuilder ?? throw new ArgumentNullException(nameof(urlBuilder));
+    private readonly IPkceDao _pkceDao = pkceDao ?? throw new ArgumentNullException(nameof(pkceDao));
+    private readonly ISpotifyOAuthHelper _oauth = oauth ?? throw new ArgumentNullException(nameof(oauth));
+    private readonly ITokenDao _tokenDao = tokenDao ?? throw new ArgumentNullException(nameof(tokenDao));
+    private readonly ISessionService _session = session ?? throw new ArgumentNullException(nameof(session));
+    private readonly IDeeplinkHelper _deeplink = deeplink ?? throw new ArgumentNullException(nameof(deeplink));
+    private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+    private readonly IConfigService _config = config ?? throw new ArgumentNullException(nameof(config));
 
-    // US 1.3
-    private readonly IAccessTokenDao _accessTokenDao;
-    private readonly IPlaylistSelectionDao _playlistSelectionDao;
-    private readonly IPlaylistCacheDao _playlistCacheDao;
-    private readonly IUserProfileCacheDao _userProfileCacheDao;
-    private readonly ITokenDenyListService _denylist;
-    private readonly IHashService _hash;
-    private readonly ISqlConnectionFactory _sqlFactory;
-    private readonly IAuditService _audit;
-
-    public AuthManager(
-        ICryptoHelper crypto,
-        IUrlBuilderHelper urlBuilder,
-        IPkceDao pkceDao,
-        ISpotifyOAuthHelper oauth,
-        ITokenDao tokenDao,
-        ISessionService session,
-        IDeeplinkHelper deeplink,
-        IClockService clock,
-        IConfigService config,
-        // US 1.3 deps
-        IAccessTokenDao accessTokenDao,
-        IPlaylistSelectionDao playlistSelectionDao,
-        IPlaylistCacheDao playlistCacheDao,
-        IUserProfileCacheDao userProfileCacheDao,
-        ITokenDenyListService denylist,
-        IHashService hash,
-        ISqlConnectionFactory sqlFactory,
-        IAuditService audit
-    )
-    {
-        _crypto = crypto ?? throw new ArgumentNullException(nameof(crypto));
-        _urlBuilder = urlBuilder ?? throw new ArgumentNullException(nameof(urlBuilder));
-        _pkceDao = pkceDao ?? throw new ArgumentNullException(nameof(pkceDao));
-        _oauth = oauth ?? throw new ArgumentNullException(nameof(oauth));
-        _tokenDao = tokenDao ?? throw new ArgumentNullException(nameof(tokenDao));
-        _session = session ?? throw new ArgumentNullException(nameof(session));
-        _deeplink = deeplink ?? throw new ArgumentNullException(nameof(deeplink));
-        _clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        _config = config ?? throw new ArgumentNullException(nameof(config));
-
+    private readonly IAccessTokenDao
         _accessTokenDao = accessTokenDao ?? throw new ArgumentNullException(nameof(accessTokenDao));
-        _playlistSelectionDao = playlistSelectionDao ?? throw new ArgumentNullException(nameof(playlistSelectionDao));
-        _playlistCacheDao = playlistCacheDao ?? throw new ArgumentNullException(nameof(playlistCacheDao));
-        _userProfileCacheDao = userProfileCacheDao ?? throw new ArgumentNullException(nameof(userProfileCacheDao));
-        _denylist = denylist ?? throw new ArgumentNullException(nameof(denylist));
-        _hash = hash ?? throw new ArgumentNullException(nameof(hash));
-        _sqlFactory = sqlFactory ?? throw new ArgumentNullException(nameof(sqlFactory));
-        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
-    }
+
+    private readonly IPlaylistSelectionDao _playlistSelectionDao =
+        playlistSelectionDao ?? throw new ArgumentNullException(nameof(playlistSelectionDao));
+
+    private readonly IPlaylistCacheDao _playlistCacheDao =
+        playlistCacheDao ?? throw new ArgumentNullException(nameof(playlistCacheDao));
+
+    private readonly IUserProfileCacheDao _userProfileCacheDao =
+        userProfileCacheDao ?? throw new ArgumentNullException(nameof(userProfileCacheDao));
+
+    private readonly ITokenDenyListService _denylist = denylist ?? throw new ArgumentNullException(nameof(denylist));
+    private readonly IHashService _hash = hash ?? throw new ArgumentNullException(nameof(hash));
+    private readonly IAuditService _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+    private readonly ITransactionRunner _txRunner = txRunner ?? throw new ArgumentNullException(nameof(txRunner));
 
     public async Task<AuthStartResponseDto> StartAuthAsync(IList<string> scopes)
     {
@@ -166,33 +150,23 @@ public class AuthManager : IAuthManager
             await _denylist.AddAsync(hash, "logout", now.AddDays(90));
         }
 
-        // 3) Purges en transaction unique
-        await using var conn = _sqlFactory.Create();
-        await conn.OpenAsync();
-        await using var tx = await conn.BeginTransactionAsync();
-
-        try
-        {
-            await _accessTokenDao.DeleteBySessionAsync(sessionId, conn, tx);
-            await _playlistSelectionDao.DeleteBySessionAsync(sessionId, conn, tx);
-
-            if (!string.IsNullOrWhiteSpace(tokenSet?.ProviderUserId))
+        // 3) Purge atomique de toutes les données liées à la session
+        await _txRunner.RunInTransaction(async (conn, tx) =>
             {
-                await _playlistCacheDao.DeleteByProviderUserAsync(tokenSet.ProviderUserId, conn, tx);
-                await _userProfileCacheDao.DeleteByProviderUserAsync(tokenSet.ProviderUserId, conn, tx);
+                await _accessTokenDao.DeleteBySessionAsync(sessionId, conn, tx);
+                await _playlistSelectionDao.DeleteBySessionAsync(sessionId, conn, tx);
+
+                if (!string.IsNullOrWhiteSpace(tokenSet?.ProviderUserId))
+                {
+                    await _playlistCacheDao.DeleteByProviderUserAsync(tokenSet.ProviderUserId, conn, tx);
+                    await _userProfileCacheDao.DeleteByProviderUserAsync(tokenSet.ProviderUserId, conn, tx);
+                }
+
+                await _playlistCacheDao.DeleteLinksBySessionAsync(sessionId, conn, tx);
+                await _tokenDao.DeleteBySessionAsync(sessionId, conn, tx);
+                await _session.DeleteAsync(sessionId, conn, tx);
             }
-
-            await _playlistCacheDao.DeleteLinksBySessionAsync(sessionId, conn, tx);
-            await _tokenDao.DeleteBySessionAsync(sessionId, conn, tx);
-            await _session.DeleteAsync(sessionId, conn, tx);
-
-            await tx.CommitAsync();
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            throw;
-        }
+        );
 
         // 4) Audit
         _audit.LogAuth("spotify", "SpotifyLogout", "purge DB + denylist");

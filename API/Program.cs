@@ -42,10 +42,14 @@ builder.Services.AddHttpClient("spotify-oauth", client => { client.Timeout = Tim
 IConfiguration cfg = builder.Configuration;
 IConfigService configService = new ConfigService(
     spotifyClientId: cfg["Spotify:ClientId"] ?? throw new ArgumentNullException($"Spotify:ClientId configuration is missing."),
-    spotifyRedirectUri: cfg["Spotify:RedirectUri"] ?? throw new ArgumentNullException($"Spotify:RedirectUri configuration is missing."),
-    spotifyAuthorizeEndpoint: cfg.GetValue<string>("Spotify:AuthorizeEndpoint", "https://accounts.spotify.com/authorize") ?? throw new ArgumentNullException($"Spotify:AuthorizeEndpoint configuration is missing."),
-    spotifyTokenEndpoint: cfg.GetValue<string>("Spotify:TokenEndpoint", "https://accounts.spotify.com/api/token") ?? throw new ArgumentNullException($"Spotify:TokenEndpoint configuration is missing."),
-    deeplinkSchemeHost: cfg.GetValue<string>("Deeplink:SchemeHost", "swipez://oauth-callback/spotify") ?? throw new ArgumentNullException($"Deeplink:SchemeHost configuration is missing."),
+    spotifyRedirectUri: cfg["Spotify:RedirectUri"] ??
+                        throw new ArgumentNullException($"Spotify:RedirectUri configuration is missing."),
+    spotifyAuthorizeEndpoint: cfg.GetValue<string>("Spotify:AuthorizeEndpoint", "https://accounts.spotify.com/authorize") ??
+                              throw new ArgumentNullException($"Spotify:AuthorizeEndpoint configuration is missing."),
+    spotifyTokenEndpoint: cfg.GetValue<string>("Spotify:TokenEndpoint", "https://accounts.spotify.com/api/token") ??
+                          throw new ArgumentNullException($"Spotify:TokenEndpoint configuration is missing."),
+    deeplinkSchemeHost: cfg.GetValue<string>("Deeplink:SchemeHost", "swipez://oauth-callback/spotify") ??
+                        throw new ArgumentNullException($"Deeplink:SchemeHost configuration is missing."),
     pkceTtlMinutes: cfg.GetValue("Security:PkceTtlMinutes", 10),
     sessionTtlMinutes: cfg.GetValue("Security:SessionTtlMinutes", 60)
 );
@@ -77,6 +81,7 @@ builder.Services.AddScoped<IDenylistedRefreshDao, DenylistedRefreshDao>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<ITokenDenyListService, TokenDenyListService>();
 builder.Services.AddScoped<IHashService, HashService>();
+builder.Services.AddScoped<ITransactionRunner, MySqlTransactionRunner>();
 
 
 // Helpers
