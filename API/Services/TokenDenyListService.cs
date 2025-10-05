@@ -1,53 +1,31 @@
-﻿using API.Managers.InterfacesServices;
+﻿using System;
+using System.Threading.Tasks;
+using Api.Managers.InterfacesDao;
+using Api.Managers.InterfacesServices;
+using API.Managers.InterfacesServices;
 
 namespace API.Services
 {
-    public class TokenDenyListService(ISqlConnectionFactory factory) : ITokenDenyListService
+    /// <summary>
+    /// Service métier : orchestrer la denylist via le DAO, gérer les dates/TTL.
+    /// Aucun SQL ici (SRP/DIP).
+    /// </summary>
+    public class TokenDenyListService(IDenylistedRefreshDao dao, IClockService clock) : ITokenDenyListService
     {
-        private readonly ISqlConnectionFactory _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+        private readonly IDenylistedRefreshDao _dao = dao ?? throw new ArgumentNullException(nameof(dao));
+        private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
 
-        public async Task AddAsync(string refreshTokenHash, string reason, DateTime? expiresAtUtc)
+        public Task<bool> IsDeniedAsync(string refreshTokenHash)
         {
-            if (string.IsNullOrWhiteSpace(refreshTokenHash))
-                throw new ArgumentException("refreshTokenHash cannot be null or empty.", nameof(refreshTokenHash));
-
-            var exp = expiresAtUtc ?? DateTime.UtcNow.AddDays(90);
-            const string sql = @"
-INSERT INTO DENYLISTEDREFRESH (RefreshHash, Reason, AddedAt, ExpiresAt)
-VALUES (@hash, @reason, @now, @exp)
-ON DUPLICATE KEY UPDATE Reason = VALUES(Reason), ExpiresAt = VALUES(ExpiresAt)";
-
-            await using var conn = _factory.Create();
-            await conn.OpenAsync();
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("@hash", refreshTokenHash);
-            cmd.Parameters.AddWithValue("@reason", reason ?? "logout");
-            cmd.Parameters.AddWithValue("@now", DateTime.UtcNow);
-            cmd.Parameters.AddWithValue("@exp", exp);
-            await cmd.ExecuteNonQueryAsync();
+            var now = _clock.GetUtcNow();
+            return _dao.ExistsAsync(refreshTokenHash, now);
         }
 
-        public async Task<bool> IsDeniedAsync(string refreshTokenHash)
+        public Task AddAsync(string refreshTokenHash, string reason, DateTime? expiresAtUtc)
         {
-            if (string.IsNullOrWhiteSpace(refreshTokenHash))
-                return false;
-
-            const string sql = @"
-SELECT 1
-FROM DENYLISTEDREFRESH
-WHERE RefreshHash = @hash AND ExpiresAt > @now
-LIMIT 1";
-
-            await using var conn = _factory.Create();
-            await conn.OpenAsync();
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("@hash", refreshTokenHash);
-            cmd.Parameters.AddWithValue("@now", DateTime.UtcNow);
-
-            var scalar = await cmd.ExecuteScalarAsync();
-            return scalar != null;
+            var now = _clock.GetUtcNow();
+            var exp = expiresAtUtc ?? now.AddDays(90);
+            return _dao.UpsertAsync(refreshTokenHash, reason ?? "logout", now, exp);
         }
     }
 }
