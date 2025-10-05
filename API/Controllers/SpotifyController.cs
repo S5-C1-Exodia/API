@@ -45,4 +45,20 @@ public class SpotifyController(IAuthManager authManager) : ControllerBase
         string deeplink = await this._authManager.HandleCallbackAsync(code, state, deviceInfo);
         return this.Redirect(deeplink);
     }
+    
+    /// <summary>
+    /// Disconnects the user from Spotify by revoking tokens and clearing session data.
+    /// </summary>
+    /// <param name="sessionId">The current session identifier provided by the mobile client in the header X-Session-Id.</param>
+    /// <returns>204 No Content if successful (idempotent).</returns>
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout([FromHeader(Name = "X-Session-Id")] string sessionId)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId))
+            return BadRequest("Missing X-Session-Id");
+
+        await _authManager.LogoutAsync(sessionId);
+        return NoContent();
+    }
+
 }

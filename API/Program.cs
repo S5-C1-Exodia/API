@@ -1,5 +1,3 @@
-using System;
-using API.Controllers;
 using API.Controllers.InterfacesManagers;
 using API.DAO;
 using API.Errors;
@@ -10,10 +8,6 @@ using Api.Managers.InterfacesHelpers;
 using Api.Managers.InterfacesServices;
 using API.Managers.InterfacesServices;
 using API.Services;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 // -----------------------------
 // Program.cs (.NET 8, top-level)
@@ -47,15 +41,15 @@ builder.Services.AddHttpClient("spotify-oauth", client => { client.Timeout = Tim
 // Configuration forte (singleton)
 IConfiguration cfg = builder.Configuration;
 IConfigService configService = new ConfigService(
-    spotifyClientId: cfg["Spotify:ClientId"],
-    spotifyRedirectUri: cfg["Spotify:RedirectUri"],
-    spotifyAuthorizeEndpoint: cfg.GetValue<string>("Spotify:AuthorizeEndpoint", "https://accounts.spotify.com/authorize"),
-    spotifyTokenEndpoint: cfg.GetValue<string>("Spotify:TokenEndpoint", "https://accounts.spotify.com/api/token"),
-    deeplinkSchemeHost: cfg.GetValue<string>("Deeplink:SchemeHost", "swipez://oauth-callback/spotify"),
-    pkceTtlMinutes: cfg.GetValue<int>("Security:PkceTtlMinutes", 10),
-    sessionTtlMinutes: cfg.GetValue<int>("Security:SessionTtlMinutes", 60)
+    spotifyClientId: cfg["Spotify:ClientId"] ?? throw new ArgumentNullException($"Spotify:ClientId configuration is missing."),
+    spotifyRedirectUri: cfg["Spotify:RedirectUri"] ?? throw new ArgumentNullException($"Spotify:RedirectUri configuration is missing."),
+    spotifyAuthorizeEndpoint: cfg.GetValue<string>("Spotify:AuthorizeEndpoint", "https://accounts.spotify.com/authorize") ?? throw new ArgumentNullException($"Spotify:AuthorizeEndpoint configuration is missing."),
+    spotifyTokenEndpoint: cfg.GetValue<string>("Spotify:TokenEndpoint", "https://accounts.spotify.com/api/token") ?? throw new ArgumentNullException($"Spotify:TokenEndpoint configuration is missing."),
+    deeplinkSchemeHost: cfg.GetValue<string>("Deeplink:SchemeHost", "swipez://oauth-callback/spotify") ?? throw new ArgumentNullException($"Deeplink:SchemeHost configuration is missing."),
+    pkceTtlMinutes: cfg.GetValue("Security:PkceTtlMinutes", 10),
+    sessionTtlMinutes: cfg.GetValue("Security:SessionTtlMinutes", 60)
 );
-builder.Services.AddSingleton<IConfigService>(configService);
+builder.Services.AddSingleton(configService);
 
 // Horloge / Audit / Ids
 builder.Services.AddSingleton<IClockService, ClockService>();
@@ -76,6 +70,7 @@ builder.Services.AddScoped<IAccessTokenDao, AccessTokenDao>();
 builder.Services.AddScoped<IPlaylistSelectionDao, PlaylistSelectionDao>();
 builder.Services.AddScoped<IPlaylistCacheDao, PlaylistCacheDao>();
 builder.Services.AddScoped<IUserProfileCacheDao, UserProfileCacheDao>();
+builder.Services.AddScoped<IDenylistedRefreshDao, DenylistedRefreshDao>();
 
 
 // Services métier
