@@ -30,7 +30,7 @@ public interface IAuthManager
     /// <exception cref="ArgumentException">Thrown if arguments are invalid.</exception>
     /// <exception cref="API.Errors.InvalidStateException">Thrown if the state is invalid or expired.</exception>
     /// <exception cref="API.Errors.TokenExchangeFailedException">Thrown if the token exchange fails.</exception>
-    Task<string> HandleCallbackAsync(string code, string state, string deviceInfo);
+    Task<string> HandleCallbackAsync(string code, string state, string? deviceInfo);
 
     /// <summary>
     /// Logs out a user by purging session and related data, denylisting the refresh token, and auditing the operation.

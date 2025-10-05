@@ -11,13 +11,11 @@ namespace API.Services
     /// </summary>
     /// <param name="sessionDao">Data Access Object for session-related database operations.</param>
     /// <param name="ids">Service for generating unique session IDs.</param>
-    /// <param name="clock">Service for retrieving the current time.</param>
     /// <exception cref="ArgumentNullException">Thrown if any dependency is null.</exception>
-    public class SessionService(ISessionDao sessionDao, IIdGenerator ids, IClockService clock) : ISessionService
+    public class SessionService(ISessionDao sessionDao, IIdGenerator ids) : ISessionService
     {
         private readonly ISessionDao _sessionDao = sessionDao ?? throw new ArgumentNullException(nameof(sessionDao));
         private readonly IIdGenerator _ids = ids ?? throw new ArgumentNullException(nameof(ids));
-        private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
 
         /// <summary>
         /// Creates a new user session and persists it to the database.
@@ -35,6 +33,7 @@ namespace API.Services
             return id;
         }
 
+        
         public Task<AppSession?> GetSessionAsync(string sessionId) => _sessionDao.GetAsync(sessionId);
 
         public Task DeleteAsync(string sessionId) => _sessionDao.DeleteAsync(sessionId);

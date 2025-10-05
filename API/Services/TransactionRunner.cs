@@ -26,7 +26,7 @@ namespace API.Services
 
             try
             {
-                await work(conn, (MySqlTransaction)tx);
+                await work(conn, tx);
                 await tx.CommitAsync();
             }
             catch

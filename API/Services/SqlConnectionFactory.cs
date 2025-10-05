@@ -6,7 +6,6 @@ namespace API.Services;
 /// <summary>
 /// Factory for creating MySQL database connections.
 /// </summary>
-/// <param name="connectionString">The connection string used to establish database connections.</param>
 /// <exception cref="ArgumentException">Thrown if the connection string is null or empty.</exception>
 public class SqlConnectionFactory : ISqlConnectionFactory
 {
