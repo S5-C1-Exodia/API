@@ -1,9 +1,11 @@
 using API.Controllers.InterfacesManagers;
 using API.DAO;
 using API.Errors;
-using API.Helpers; // si tu as un dossier Helpers dans le namespace API.Services, ajuste l’using
+using API.Helpers;
+using API.Managers; // si tu as un dossier Helpers dans le namespace API.Services, ajuste l’using
 using Api.Managers.InterfacesDao;
 using Api.Managers.InterfacesHelpers;
+using API.Managers.InterfacesHelpers;
 using Api.Managers.InterfacesServices;
 using API.Managers.InterfacesServices;
 using API.Services;
@@ -41,6 +43,15 @@ builder.Services.AddHttpClient("spotify-oauth", client => { client.Timeout = Tim
 // Configuration forte (singleton)
 IConfiguration cfg = builder.Configuration;
 IConfigService configService = new ConfigService(
+    spotifyBaseUrl: cfg.GetValue<string>("Spotify:BaseUrl", "https://api.spotify.com/v1") ??
+                    throw new ArgumentNullException($"Spotify:BaseUrl configuration is missing."),
+    spotifyPlaylistPageSize: cfg.GetValue("Spotify:PlaylistsPageSize", 20) switch
+    {
+        <= 0 => throw new ArgumentOutOfRangeException($"Spotify:PlaylistsPageSize must be positive."),
+        > 50 => throw new ArgumentOutOfRangeException($"Spotify:PlaylistsPageSize cannot exceed 50."),
+        var v => v
+    },
+    spotifyCacheTtlMinutes: cfg.GetValue("Spotify:CacheTtlMinutes", 60),
     spotifyClientId: cfg["Spotify:ClientId"] ?? throw new ArgumentNullException($"Spotify:ClientId configuration is missing."),
     spotifyRedirectUri: cfg["Spotify:RedirectUri"] ??
                         throw new ArgumentNullException($"Spotify:RedirectUri configuration is missing."),
@@ -53,6 +64,7 @@ IConfigService configService = new ConfigService(
     pkceTtlMinutes: cfg.GetValue("Security:PkceTtlMinutes", 10),
     sessionTtlMinutes: cfg.GetValue("Security:SessionTtlMinutes", 60)
 );
+
 builder.Services.AddSingleton(configService);
 
 // Horloge / Audit / Ids
@@ -90,11 +102,22 @@ builder.Services.AddScoped<IUrlBuilderHelper, UrlBuilderHelper>();
 builder.Services.AddScoped<IDeeplinkHelper, DeeplinkHelper>();
 builder.Services.AddScoped<ISpotifyOAuthHelper, SpotifyOAuthHelper>();
 
+// HttpClient pour l'API Spotify (api.spotify.com/v1)
+builder.Services.AddHttpClient<ISpotifyApiHelper, SpotifyApiHelper>(client =>
+{
+    string baseUrl = configService.GetSpotifyApiBaseUrl();        // ex: https://api.spotify.com/v1
+    if (!baseUrl.EndsWith("/")) baseUrl += "/";                   // <<-- IMPORTANT
+    client.BaseAddress = new Uri(baseUrl);                        // => https://api.spotify.com/v1/
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+
+
 // Error mapping
 builder.Services.AddSingleton<IErrorMapper, DefaultErrorMapper>();
 
 // Managers
 builder.Services.AddScoped<IAuthManager, AuthManager>();
+builder.Services.AddScoped<IUserDataManager, UserDataManager>();
 
 WebApplication app = builder.Build();
 
