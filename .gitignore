@@ -112,3 +112,8 @@ _ReSharper*/
 ## Local config
 launchSettings.json
 API/appsettings.json
+API/Caddyfile
+API/.env
+API/docker-compose.yml
+API/Dockerfile
+API/Caddyfile

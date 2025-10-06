@@ -2,12 +2,12 @@ using API.Controllers.InterfacesManagers;
 using API.DAO;
 using API.Errors;
 using API.Helpers; // si tu as un dossier Helpers dans le namespace API.Services, ajuste l’using
-using API.Managers;
 using Api.Managers.InterfacesDao;
 using Api.Managers.InterfacesHelpers;
 using Api.Managers.InterfacesServices;
 using API.Managers.InterfacesServices;
 using API.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 
 // -----------------------------
 // Program.cs (.NET 8, top-level)
@@ -97,6 +97,10 @@ builder.Services.AddSingleton<IErrorMapper, DefaultErrorMapper>();
 builder.Services.AddScoped<IAuthManager, AuthManager>();
 
 WebApplication app = builder.Build();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions {
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 // Swagger en Dev
 if (app.Environment.IsDevelopment())
