@@ -27,6 +27,6 @@ public sealed class SpotifyPlaylistItem
 
     /// <summary>
     /// Gets or sets the tracks information of the playlist.
-    /// </summary>s
+    /// </summary>
     public SpotifyTracks? Tracks { get; set; }
 }

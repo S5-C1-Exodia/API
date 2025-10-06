@@ -26,7 +26,7 @@ public class AccessTokenDao(ISqlConnectionFactory factory) : IAccessTokenDao
         await cmd.ExecuteNonQueryAsync();
     }
 
-    //// <inheritdoc />
+    /// <inheritdoc />
     public async Task DeleteBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
