@@ -2,9 +2,9 @@
 
 using System.Threading.Tasks;
 
-    /// <summary>
-    /// Provides methods to manage a denylist of refresh tokens.
-    /// </summary>
+/// <summary>
+/// Provides methods to manage a denylist of refresh tokens.
+/// </summary>
 public interface ITokenDenyListService
 {
     /// <summary>
