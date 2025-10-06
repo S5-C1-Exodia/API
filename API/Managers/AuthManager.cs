@@ -48,12 +48,7 @@ public class AuthManager(
     private readonly IAuditService _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     private readonly ITransactionRunner _txRunner = txRunner ?? throw new ArgumentNullException(nameof(txRunner));
 
-    /// <summary>
-    /// Starts the authentication process by generating a state and PKCE challenge, saving them, and returning the authorization URL and state.
-    /// </summary>
-    /// <param name="scopes">The list of scopes to request.</param>
-    /// <returns>An <see cref="AuthStartResponseDto"/> containing the authorization URL and state.</returns>
-    /// <exception cref="ArgumentException">Thrown if scopes is null or empty.</exception>
+    /// <inheritdoc />
     public async Task<AuthStartResponseDto> StartAuthAsync(IList<string> scopes)
     {
         if (scopes == null || scopes.Count == 0)
@@ -80,16 +75,7 @@ public class AuthManager(
         return new AuthStartResponseDto(url, state);
     }
 
-    /// <summary>
-    /// Handles the OAuth callback by exchanging the code for tokens, creating a session, and returning a deep link.
-    /// </summary>
-    /// <param name="code">The authorization code received from the provider.</param>
-    /// <param name="state">The state parameter to validate the request.</param>
-    /// <param name="deviceInfo">Optional device information.</param>
-    /// <returns>A deep link string for the authenticated session.</returns>
-    /// <exception cref="ArgumentException">Thrown if code or state is null or empty.</exception>
-    /// <exception cref="InvalidStateException">Thrown if the state is unknown or expired.</exception>
-    /// <exception cref="TokenExchangeFailedException">Thrown if token exchange fails.</exception>
+    /// <inheritdoc />
     public async Task<string> HandleCallbackAsync(string code, string state, string? deviceInfo)
     {
         if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("code cannot be null or empty.", nameof(code));
@@ -137,12 +123,7 @@ public class AuthManager(
         return _deeplink.BuildDeepLink(sessionId);
     }
 
-    /// <summary>
-    /// Logs out a user by denylisting the refresh token, purging all session-related data, and auditing the operation.
-    /// </summary>
-    /// <param name="sessionId">The session identifier to log out.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown if sessionId is null or empty.</exception>
+    /// <inheritdoc />
     public async Task LogoutAsync(string sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -152,8 +133,8 @@ public class AuthManager(
 
         TokenSet? tokenSet = await _tokenDao.GetBySessionAsync(sessionId);
 
-        if (!string.IsNullOrWhiteSpace(tokenSet?.RefreshTokenEnc))
-            await _denylist.AddAsync(_hash.Sha256Base64(tokenSet.RefreshTokenEnc), "logout", now.AddDays(90));
+        if (!string.IsNullOrWhiteSpace(tokenSet?.RefreshToken))
+            await _denylist.AddAsync(_hash.Sha256Base64(tokenSet.RefreshToken), "logout", now.AddDays(90));
 
         await _txRunner.RunInTransaction(async (conn, tx) =>
             {
