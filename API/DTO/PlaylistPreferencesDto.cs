@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents the playlist selection on the backend side.
     /// </summary>
-    public sealed class PlaylistPreferencesDto
+    public class PlaylistPreferencesDto
     {
         /// <summary>
         /// List of selected playlist identifiers.

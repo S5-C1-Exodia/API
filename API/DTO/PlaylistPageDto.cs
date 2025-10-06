@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents a paginated result page of playlists.
     /// </summary>
-    public sealed class PlaylistPageDto
+    public class PlaylistPageDto
     {
         /// <summary>
         /// Items of the current page.

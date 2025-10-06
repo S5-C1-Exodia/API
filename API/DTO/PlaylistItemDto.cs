@@ -3,7 +3,7 @@
     /// <summary>
     /// Represents a Spotify playlist displayable on the client side.
     /// </summary>
-    public sealed class PlaylistItemDto
+    public class PlaylistItemDto
     {
         /// <summary>
         /// Unique identifier of the playlist at the provider (e.g., Spotify).
