@@ -26,7 +26,7 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
 
         if (!string.IsNullOrWhiteSpace(pageToken) && Uri.IsWellFormedUriString(pageToken, UriKind.Absolute))
         {
-            url = pageToken!;
+            url = pageToken;
         }
         else
         {
@@ -37,9 +37,6 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
 
             url = $"me/playlists?limit={limit}{offsetParam}";
         }
-
-        Uri finalUri = new Uri(_http.BaseAddress!, url);
-        Console.WriteLine($"[SpotifyApiHelper] Base={_http.BaseAddress} Url={url} Final={finalUri}");
 
         using HttpRequestMessage req = new HttpRequestMessage(HttpMethod.Get, url);
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);

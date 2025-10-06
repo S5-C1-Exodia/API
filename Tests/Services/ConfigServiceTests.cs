@@ -2,14 +2,9 @@
 
 namespace Tests.Services;
 
-/// <summary>
-/// Unit tests pour <see cref="ConfigService"/>.
-/// </summary>
 public class ConfigServiceTests
 {
-    /// <summary>
-    /// Vérifie que les getters de <see cref="ConfigService"/> retournent les valeurs du constructeur.
-    /// </summary>
+
     [Fact]
     public void Getters_ShouldReturnConstructorValues()
     {
@@ -34,10 +29,7 @@ public class ConfigServiceTests
         Assert.Equal(15, cfg.GetPkceTtlMinutes());
         Assert.Equal(120, cfg.GetSessionTtlMinutes());
     }
-
-    /// <summary>
-    /// Vérifie que le constructeur de <see cref="ConfigService"/> lève une <see cref="ArgumentException"/> pour des arguments invalides.
-    /// </summary>
+    
     [Fact]
     public void Constructor_ShouldThrow_OnInvalidArgs()
     {
