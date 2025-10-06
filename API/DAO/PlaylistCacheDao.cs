@@ -10,13 +10,8 @@ namespace API.DAO;
 /// </summary>
 public class PlaylistCacheDao(ISqlConnectionFactory factory) : IPlaylistCacheDao
 {
-    /// <summary>
-    /// Deletes all playlist cache entries associated with the specified provider user identifier.
-    /// </summary>
-    /// <param name="providerUserId">The provider user identifier whose playlist cache entries should be deleted.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="providerUserId"/> is null or empty.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    
+    /// <inheritdoc />
     public async Task DeleteByProviderUserAsync(string providerUserId)
     {
         if (string.IsNullOrWhiteSpace(providerUserId))
@@ -32,17 +27,7 @@ public class PlaylistCacheDao(ISqlConnectionFactory factory) : IPlaylistCacheDao
         await cmd.ExecuteNonQueryAsync();
     }
 
-    /// <summary>
-    /// Deletes all playlist cache entries associated with the specified provider user identifier,
-    /// using an existing MySQL connection and transaction.
-    /// </summary>
-    /// <param name="providerUserId">The provider user identifier whose playlist cache entries should be deleted.</param>
-    /// <param name="conn">An open <see cref="MySqlConnection"/> to use for the operation.</param>
-    /// <param name="tx">An active <see cref="MySqlTransaction"/> to use for the operation.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="providerUserId"/> is null or empty.</exception>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="conn"/> or <paramref name="tx"/> is null.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task DeleteByProviderUserAsync(string providerUserId, MySqlConnection conn, MySqlTransaction tx)
     {
         if (string.IsNullOrWhiteSpace(providerUserId))
@@ -58,13 +43,7 @@ public class PlaylistCacheDao(ISqlConnectionFactory factory) : IPlaylistCacheDao
         await cmd.ExecuteNonQueryAsync();
     }
 
-    /// <summary>
-    /// Deletes all playlist cache session links associated with the specified session identifier.
-    /// </summary>
-    /// <param name="sessionId">The session identifier whose playlist cache session links should be deleted.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="sessionId"/> is null or empty.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task DeleteLinksBySessionAsync(string sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -80,17 +59,7 @@ public class PlaylistCacheDao(ISqlConnectionFactory factory) : IPlaylistCacheDao
         await cmd.ExecuteNonQueryAsync();
     }
 
-    /// <summary>
-    /// Deletes all playlist cache session links associated with the specified session identifier,
-    /// using an existing MySQL connection and transaction.
-    /// </summary>
-    /// <param name="sessionId">The session identifier whose playlist cache session links should be deleted.</param>
-    /// <param name="conn">An open <see cref="MySqlConnection"/> to use for the operation.</param>
-    /// <param name="tx">An active <see cref="MySqlTransaction"/> to use for the operation.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="sessionId"/> is null or empty.</exception>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="conn"/> or <paramref name="tx"/> is null.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task DeleteLinksBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -114,20 +83,20 @@ public class PlaylistCacheDao(ISqlConnectionFactory factory) : IPlaylistCacheDao
             throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
 
         const string sql = @"
-select pc.json
+select pc.Json
 from playlistcache pc
 join playlistcache_session pcs
-  on pcs.provider_user_id = pc.provider_user_id
+  on pcs.ProviderUserId = pc.ProviderUserId
  and (
-       (pcs.page_token is null and pc.page_token is null)
-       or (pcs.page_token = pc.page_token)
+       (pcs.PageToken is null and pc.PageToken is null)
+       or (pcs.PageToken = pc.PageToken)
      )
-where pcs.session_id = @sid
+where pcs.SessionId = @sid
   and (
-       (pc.page_token is null and @ptok is null)
-       or (pc.page_token = @ptok)
+       (pc.PageToken is null and @ptok is null)
+       or (pc.PageToken = @ptok)
       )
-  and pc.expires_at > @now
+  and pc.ExpiresAt > @now
 limit 1;";
 
         await using var conn = factory.Create();
@@ -142,10 +111,7 @@ limit 1;";
         var result = await cmd.ExecuteScalarAsync(ct);
         return result is DBNull or null ? null : (string)result;
     }
-
-    // =======================
-    // NEW: Upsert page + link
-    // =======================
+    
     /// <inheritdoc />
     public async Task UpsertPageAsync(
         string sessionId,

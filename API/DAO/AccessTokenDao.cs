@@ -10,15 +10,7 @@ namespace API.DAO;
 /// </summary>
 public class AccessTokenDao(ISqlConnectionFactory factory) : IAccessTokenDao
 {
-    private readonly ISqlConnectionFactory _factory = factory;
-
-    /// <summary>
-    /// Deletes all access tokens associated with the specified session identifier.
-    /// </summary>
-    /// <param name="sessionId">The session identifier whose access tokens should be deleted.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="sessionId"/> is null or empty.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task DeleteBySessionAsync(string sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -26,7 +18,7 @@ public class AccessTokenDao(ISqlConnectionFactory factory) : IAccessTokenDao
 
         const string sql = "delete from accesstoken where SessionId = @sid";
 
-        await using var conn = _factory.Create();
+        await using var conn = factory.Create();
         await conn.OpenAsync();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
@@ -34,17 +26,7 @@ public class AccessTokenDao(ISqlConnectionFactory factory) : IAccessTokenDao
         await cmd.ExecuteNonQueryAsync();
     }
 
-    /// <summary>
-    /// Deletes all access tokens associated with the specified session identifier,
-    /// using an existing MySQL connection and transaction.
-    /// </summary>
-    /// <param name="sessionId">The session identifier whose access tokens should be deleted.</param>
-    /// <param name="conn">An open <see cref="MySqlConnection"/> to use for the operation.</param>
-    /// <param name="tx">An active <see cref="MySqlTransaction"/> to use for the operation.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="sessionId"/> is null or empty.</exception>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="conn"/> or <paramref name="tx"/> is null.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    //// <inheritdoc />
     public async Task DeleteBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -58,5 +40,75 @@ public class AccessTokenDao(ISqlConnectionFactory factory) : IAccessTokenDao
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@sid", sessionId);
         await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> GetValidBySessionAsync(string sessionId, DateTime nowUtc, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId))
+            throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
+
+        const string sql = @"
+select AccessTokenEnc
+from accesstoken
+where SessionId = @sid
+  and ExpiresAt > @now
+order by ExpiresAt desc
+limit 1;";
+
+        MySqlConnection conn = factory.Create();
+        try
+        {
+            await conn.OpenAsync(ct);
+            MySqlCommand cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("@sid", sessionId);
+            cmd.Parameters.AddWithValue("@now", nowUtc);
+
+            object? scalar = await cmd.ExecuteScalarAsync(ct);
+            if (scalar is null || scalar == DBNull.Value) return null;
+            return Convert.ToString(scalar);
+        }
+        finally
+        {
+            await conn.CloseAsync();
+            await conn.DisposeAsync();
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task UpsertAsync(string sessionId, string accessToken, DateTime expiresAtUtc, DateTime nowUtc,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId))
+            throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
+        if (string.IsNullOrWhiteSpace(accessToken))
+            throw new ArgumentException("accessToken cannot be null or empty.", nameof(accessToken));
+
+        const string sql = @"
+insert into accesstoken (SessionId, AccessTokenEnc, ExpiresAt, CreatedAt)
+values (@sid, @tok, @exp, @now)
+on duplicate key update
+  AccessTokenEnc = values(AccessTokenEnc),
+  ExpiresAt     = values(ExpiresAt),
+  CreatedAt     = values(CreatedAt);";
+
+        MySqlConnection conn = factory.Create();
+        try
+        {
+            await conn.OpenAsync(ct);
+            MySqlCommand cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("@sid", sessionId);
+            cmd.Parameters.AddWithValue("@tok", accessToken);
+            cmd.Parameters.AddWithValue("@exp", expiresAtUtc);
+            cmd.Parameters.AddWithValue("@now", nowUtc);
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+        finally
+        {
+            await conn.CloseAsync();
+            await conn.DisposeAsync();
+        }
     }
 }

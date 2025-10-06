@@ -24,14 +24,7 @@ public class PkceDao : IPkceDao
         _factory = factory ?? throw new ArgumentNullException(nameof(factory));
     }
 
-    /// <summary>
-    /// Saves a PKCE entry to the database.
-    /// </summary>
-    /// <param name="entry">The <see cref="PkceEntry"/> to save.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="entry"/> is null.</exception>
-    /// <exception cref="DataException">Thrown if the number of affected rows is not 1.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task SaveAsync(PkceEntry entry)
     {
         if (entry == null)
@@ -63,16 +56,7 @@ public class PkceDao : IPkceDao
         }
     }
 
-    /// <summary>
-    /// Retrieves a PKCE entry from the database by its state.
-    /// </summary>
-    /// <param name="state">The state identifier of the PKCE entry.</param>
-    /// <returns>
-    /// A task representing the asynchronous operation. The task result contains the <see cref="PkceEntry"/>
-    /// if found; otherwise, <c>null</c>.
-    /// </returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="state"/> is null or empty.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task<PkceEntry?> GetAsync(string state)
     {
         if (string.IsNullOrWhiteSpace(state))
@@ -122,13 +106,7 @@ public class PkceDao : IPkceDao
         }
     }
 
-    /// <summary>
-    /// Deletes a PKCE entry from the database by its state.
-    /// </summary>
-    /// <param name="state">The state identifier of the PKCE entry to delete.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="state"/> is null or empty.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task DeleteAsync(string state)
     {
         if (string.IsNullOrWhiteSpace(state))

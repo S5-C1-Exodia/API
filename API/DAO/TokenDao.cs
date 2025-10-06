@@ -18,19 +18,7 @@ public class TokenDao(ISqlConnectionFactory factory, IClockService clock) : ITok
     private readonly ISqlConnectionFactory _factory = factory ?? throw new ArgumentNullException(nameof(factory));
     private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
 
-    /// <summary>
-    /// Saves a new TokenSet entry in the database by state and returns its generated ID.
-    /// </summary>
-    /// <param name="state">The state associated with the token set.</param>
-    /// <param name="provider">The provider name (must not be null or empty).</param>
-    /// <param name="providerUserId">The provider user identifier.</param>
-    /// <param name="refreshTokenEnc">The encrypted refresh token (must not be null or empty).</param>
-    /// <param name="scope">The scope of the token.</param>
-    /// <param name="accessExpiresAt">The expiration date and time of the access token.</param>
-    /// <returns>The ID of the newly inserted TokenSet.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="provider"/> or <paramref name="refreshTokenEnc"/> is null or empty.</exception>
-    /// <exception cref="DataException">Thrown if the insert fails or the returned ID is invalid.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task<long> SaveByStateAsync(string state, string provider, string providerUserId,
         string refreshTokenEnc, string scope, DateTime accessExpiresAt)
     {
@@ -74,15 +62,7 @@ SELECT LAST_INSERT_ID();";
         }
     }
 
-    /// <summary>
-    /// Attaches a TokenSet to a session by updating its SessionId and UpdatedAt fields.
-    /// </summary>
-    /// <param name="tokenSetId">The ID of the TokenSet to attach (must be positive).</param>
-    /// <param name="sessionId">The session identifier (must not be null or empty).</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="tokenSetId"/> is not positive or <paramref name="sessionId"/> is null or empty.</exception>
-    /// <exception cref="DataException">Thrown if the update does not affect exactly one row.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task AttachToSessionAsync(long tokenSetId, string sessionId)
     {
         if (tokenSetId <= 0)
@@ -119,17 +99,7 @@ WHERE TokenSetId = @id";
         }
     }
 
-    /// <summary>
-    /// Retrieves a TokenSet entry from the database by its session identifier.
-    /// </summary>
-    /// <param name="sessionId">The session identifier to search for (must not be null or empty).</param>
-    /// <returns>
-    /// A task representing the asynchronous operation. The task result contains the <see cref="TokenSet"/>
-    /// if found; otherwise, <c>null</c>.
-    /// </returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="sessionId"/> is null or empty.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if SessionId is unexpectedly null in the database.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task<TokenSet?> GetBySessionAsync(string sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -156,7 +126,7 @@ LIMIT 1";
                 tokenSetId: reader.GetInt64("TokenSetId"),
                 provider: reader.GetString("Provider"),
                 providerUserId: reader.GetString("ProviderUserId"),
-                refreshTokenEnc: reader.GetString("RefreshTokenEnc"),
+                refreshToken: reader.GetString("RefreshTokenEnc"),
                 scope: reader.IsDBNull(reader.GetOrdinal("Scope")) ? string.Empty : reader.GetString("Scope"),
                 accessExpiresAt: reader.GetDateTime("AccessExpiresAt"),
                 updatedAt: reader.GetDateTime("UpdatedAt"),
@@ -168,13 +138,7 @@ LIMIT 1";
         return null;
     }
 
-    /// <summary>
-    /// Deletes all TokenSet entries associated with the specified session identifier.
-    /// </summary>
-    /// <param name="sessionId">The session identifier whose token sets should be deleted (must not be null or empty).</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="sessionId"/> is null or empty.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task DeleteBySessionAsync(string sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -190,17 +154,7 @@ LIMIT 1";
         await cmd.ExecuteNonQueryAsync();
     }
 
-    /// <summary>
-    /// Deletes all TokenSet entries associated with the specified session identifier,
-    /// using an existing MySQL connection and transaction.
-    /// </summary>
-    /// <param name="sessionId">The session identifier whose token sets should be deleted (must not be null or empty).</param>
-    /// <param name="conn">An open <see cref="MySqlConnection"/> to use for the operation.</param>
-    /// <param name="tx">An active <see cref="MySqlTransaction"/> to use for the operation.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="sessionId"/> is null or empty.</exception>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="conn"/> or <paramref name="tx"/> is null.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task DeleteBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -215,5 +169,43 @@ LIMIT 1";
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@sid", sessionId);
         await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task UpdateAfterRefreshAsync(string sessionId, string refreshToken, DateTime newAccessExpiresAtUtc,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId))
+            throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            throw new ArgumentException("refreshToken cannot be null or empty.", nameof(refreshToken));
+
+        DateTime now = _clock.GetUtcNow();
+
+        const string sql = @"
+update tokenset
+set RefreshTokenEnc = @refresh,
+    AccessExpiresAt = @accessExp,
+    UpdatedAt       = @updatedAt
+where SessionId = @sid
+limit 1;";
+
+        MySqlConnection conn = _factory.Create();
+        try
+        {
+            await conn.OpenAsync(ct);
+            MySqlCommand cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.AddWithValue("@refresh", refreshToken);
+            cmd.Parameters.AddWithValue("@accessExp", newAccessExpiresAtUtc);
+            cmd.Parameters.AddWithValue("@updatedAt", now);
+            cmd.Parameters.AddWithValue("@sid", sessionId);
+
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+        finally
+        {
+            await conn.CloseAsync();
+            await conn.DisposeAsync();
+        }
     }
 }
