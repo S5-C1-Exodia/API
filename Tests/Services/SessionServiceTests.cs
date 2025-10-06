@@ -11,8 +11,8 @@ namespace Tests.Services
     /// </summary>
     public class SessionServiceTests
     {
-        private readonly Mock<ISessionDao> _dao = new Mock<ISessionDao>();
-        private readonly Mock<IIdGenerator> _ids = new Mock<IIdGenerator>();
+        private readonly Mock<ISessionDao> _dao = new();
+        private readonly Mock<IIdGenerator> _ids = new();
 
         [Fact]
         public async Task CreateSessionAsync_ShouldGenerateId_AndInsert()
