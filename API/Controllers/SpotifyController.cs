@@ -13,14 +13,18 @@ namespace API.Controllers;
 public class SpotifyController : ControllerBase
 {
     private readonly IAuthManager _authManager;
+    private readonly IUserDataManager _userDataManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SpotifyController"/> class.
     /// </summary>
     /// <param name="authManager">The authentication manager.</param>
-    public SpotifyController(IAuthManager authManager)
+    /// <param name="userDataManager">The user data manager.</param>
+    /// <exception cref="ArgumentNullException">Thrown if any argument is null.</exception>
+    public SpotifyController(IAuthManager authManager, IUserDataManager userDataManager)
     {
         _authManager = authManager ?? throw new ArgumentNullException(nameof(authManager));
+        _userDataManager = userDataManager ?? throw new ArgumentNullException(nameof(userDataManager));
     }
 
     /// <summary>
@@ -34,10 +38,10 @@ public class SpotifyController : ControllerBase
     [HttpPost("auth/start")]
     [ProducesResponseType(typeof(AuthStartResponseDto), 200)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> StartAuth([FromBody] IList<string> scopes)
+    public async Task<ActionResult<AuthStartResponseDto>> StartAuth([FromBody] AuthStartRequestDto request)
     {
-        var result = await _authManager.StartAuthAsync(scopes);
-        return Ok(result);
+        AuthStartResponseDto response = await _authManager.StartAuthAsync(request.Scopes);
+        return Ok(response);
     }
 
     /// <summary>
@@ -78,4 +82,27 @@ public class SpotifyController : ControllerBase
         await _authManager.LogoutAsync(sessionId);
         return NoContent();
     }
+    
+    /// <summary>
+    /// Returns a paginated list of the current user's playlists.
+    /// Requires the opaque session id in <c>X-Session-Id</c>.
+    /// Optionally accepts <c>X-Page-Token</c> for pagination (opaque token, e.g., Spotify "next" URL).
+    /// </summary>
+    /// <param name="sessionId">Opaque application session identifier.</param>
+    /// <param name="pageToken">Opaque pagination token, or null for the first page.</param>
+    [HttpGet("playlists")]
+    [ProducesResponseType(typeof(PlaylistPageDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PlaylistPageDto>> GetPlaylists(
+        [FromHeader(Name = "X-Session-Id")] string sessionId,
+        [FromHeader(Name = "X-Page-Token")] string? pageToken)
+    {
+        PlaylistPageDto page = await _userDataManager.GetPlaylistsAsync(
+            sessionId,
+            pageToken,
+            HttpContext.RequestAborted
+        );
+
+        return Ok(page);
+    }
+
 }
