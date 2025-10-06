@@ -32,21 +32,7 @@ public class SpotifyOAuthHelper(
     private readonly IAuditService
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
 
-    /// <summary>
-    /// Exchanges an authorization code for Spotify access and refresh tokens, and retrieves the user's Spotify profile.
-    /// </summary>
-    /// <param name="code">The authorization code received from Spotify. Must not be null or empty.</param>
-    /// <param name="redirectUri">The redirect URI used in the OAuth flow. Must not be null or empty.</param>
-    /// <param name="codeVerifier">The PKCE code verifier. Must not be null or empty.</param>
-    /// <returns>
-    /// A <see cref="TokenInfo"/> object containing the access token, refresh token, expiration, scope, and Spotify user ID.
-    /// </returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown if <paramref name="code"/>, <paramref name="redirectUri"/>, or <paramref name="codeVerifier"/> is null or empty.
-    /// </exception>
-    /// <exception cref="TokenExchangeFailedException">
-    /// Thrown if the token exchange fails, the response is invalid, or the Spotify user profile cannot be retrieved or parsed.
-    /// </exception>
+    /// <inheritdoc />
     public async Task<TokenInfo> ExchangeCodeForTokensAsync(string code, string redirectUri, string codeVerifier)
     {
         if (string.IsNullOrWhiteSpace(code))
@@ -169,14 +155,82 @@ public class SpotifyOAuthHelper(
         return tokenInfo;
     }
 
-    /// <summary>
-    /// Reads a string property from a <see cref="JsonDocument"/>.
-    /// </summary>
-    /// <param name="doc">The JSON document to read from.</param>
-    /// <param name="property">The property name to retrieve.</param>
-    /// <returns>
-    /// The string value of the property, or an empty string if not found or not a string.
-    /// </returns>
+    /// <inheritdoc />
+    public async Task<RefreshResult> RefreshTokensAsync(string refreshToken, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            throw new ArgumentException("refreshToken cannot be null or empty.", nameof(refreshToken));
+
+        string tokenEndpoint = _config.GetSpotifyTokenEndpoint();
+        string clientId = _config.GetSpotifyClientId();
+
+        HttpClient http = _httpClientFactory.CreateClient("spotify-oauth");
+        HttpRequestMessage req = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint);
+
+        string body = "grant_type=refresh_token"
+                      + "&refresh_token=" + Uri.EscapeDataString(refreshToken)
+                      + "&client_id=" + Uri.EscapeDataString(clientId);
+
+        req.Content = new StringContent(body, Encoding.UTF8, "application/x-www-form-urlencoded");
+
+        HttpResponseMessage resp;
+        try
+        {
+            resp = await http.SendAsync(req, ct);
+        }
+        catch (Exception ex)
+        {
+            _audit.LogAuth("spotify", "Refresh.NetworkError", ex.Message);
+            throw new TokenExchangeFailedException("Network error during token refresh.", ex);
+        }
+
+        string payload = await resp.Content.ReadAsStringAsync(ct);
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            string detail = "HTTP " + ((int)resp.StatusCode).ToString() + " payload: " + payload;
+            _audit.LogAuth("spotify", "Refresh.HttpError", detail);
+
+            if ((int)resp.StatusCode == 400)
+                throw new TokenExchangeFailedException("Invalid refresh token.");
+
+            if ((int)resp.StatusCode == 429)
+                throw new TokenExchangeFailedException("Rate limited by Spotify during token refresh.");
+
+            throw new TokenExchangeFailedException("Spotify token endpoint returned an error on refresh.");
+        }
+
+        JsonDocument doc;
+        try
+        {
+            doc = JsonDocument.Parse(payload);
+        }
+        catch (Exception ex)
+        {
+            _audit.LogAuth("spotify", "Refresh.ParseError", ex.Message);
+            throw new TokenExchangeFailedException("Failed to parse refresh response.", ex);
+        }
+
+        string newAccessToken = ReadString(doc, "access_token");
+        // Spotify may or may not return a new refresh_token
+        string maybeNewRefreshToken = ReadString(doc, "refresh_token");
+        int expiresIn = ReadInt(doc, "expires_in", 3600);
+
+        if (string.IsNullOrWhiteSpace(newAccessToken))
+            throw new TokenExchangeFailedException("Refresh response missing access_token.");
+
+        DateTime now = _clock.GetUtcNow();
+        DateTime accessExpiresAt = now.AddSeconds(expiresIn > 60 ? expiresIn - 60 : expiresIn);
+
+        return new RefreshResult(
+            newAccessToken,
+            accessExpiresAt,
+            string.IsNullOrWhiteSpace(maybeNewRefreshToken) ? null : maybeNewRefreshToken
+        );
+    }
+
+
+    /// <inheritdoc />
     private string ReadString(JsonDocument doc, string property)
     {
         if (doc == null) return string.Empty;
@@ -185,15 +239,7 @@ public class SpotifyOAuthHelper(
         return el.ToString();
     }
 
-    /// <summary>
-    /// Reads an integer property from a <see cref="JsonDocument"/>, or returns a default value if not found or invalid.
-    /// </summary>
-    /// <param name="doc">The JSON document to read from.</param>
-    /// <param name="property">The property name to retrieve.</param>
-    /// <param name="defaultValue">The default value to return if the property is not found or not a valid integer.</param>
-    /// <returns>
-    /// The integer value of the property, or <paramref name="defaultValue"/> if not found or invalid.
-    /// </returns>
+    /// <inheritdoc />
     private int ReadInt(JsonDocument doc, string property, int defaultValue)
     {
         if (doc == null) return defaultValue;
@@ -201,8 +247,7 @@ public class SpotifyOAuthHelper(
 
         if (el.ValueKind == JsonValueKind.Number)
         {
-            int value;
-            bool ok = el.TryGetInt32(out value);
+            bool ok = el.TryGetInt32(out int value);
             if (ok) return value;
         }
 

@@ -13,21 +13,7 @@ public class UrlBuilderHelper(IConfigService config) : IUrlBuilderHelper
 {
     private readonly IConfigService _config = config ?? throw new ArgumentNullException(nameof(config));
 
-    /// <summary>
-    /// Builds a Spotify authorization URL with the specified parameters, including PKCE and state.
-    /// </summary>
-    /// <param name="clientId">The Spotify client ID. Must not be null or empty.</param>
-    /// <param name="redirectUri">The redirect URI to use in the authorization flow. Must not be null or empty.</param>
-    /// <param name="scopes">The list of scopes to request. Must not be null or empty.</param>
-    /// <param name="state">A unique state string for CSRF protection. Must not be null or empty.</param>
-    /// <param name="codeChallenge">The PKCE code challenge. Must not be null or empty.</param>
-    /// <param name="codeChallengeMethod">The PKCE code challenge method (e.g., "S256"). Must not be null or empty.</param>
-    /// <returns>
-    /// A string representing the complete Spotify authorization URL with all query parameters.
-    /// </returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown if any required parameter is null or empty, or if <paramref name="scopes"/> is null or empty.
-    /// </exception>
+    /// <inheritdoc />
     public string BuildAuthorizeUrl(string clientId, string redirectUri, string[] scopes, string state, string codeChallenge,
         string codeChallengeMethod)
     {
