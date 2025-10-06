@@ -48,4 +48,15 @@ public interface ITokenDao
     /// <param name="conn">The MySQL connection.</param>
     /// <param name="tx">The MySQL transaction.</param>
     Task DeleteBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx);
+
+    /// <summary>
+    /// Asynchronously updates the token set after a refresh operation.
+    /// </summary>
+    /// <param name="sessionId">The identifier of the session associated with the token set.</param>
+    /// <param name="refreshToken">The new refresh token to update.</param>
+    /// <param name="newAccessExpiresAtUtc">The new UTC expiration date and time for the access token.</param>
+    /// <param name="ct">Optional cancellation token for the asynchronous operation.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous update operation.</returns>
+    Task UpdateAfterRefreshAsync(string sessionId, string refreshToken, DateTime newAccessExpiresAtUtc,
+        CancellationToken ct = default);
 }

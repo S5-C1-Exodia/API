@@ -46,4 +46,23 @@ public interface IConfigService
     /// </summary>
     /// <returns>The session TTL in minutes.</returns>
     int GetSessionTtlMinutes();
+    
+    /// <summary>
+    /// Gets the base URL for Spotify API.
+    /// </summary>
+    /// <returns>The Spotify API base URL.</returns>
+    public string GetSpotifyApiBaseUrl() ;
+    
+    /// <summary>
+    /// Gets the page size for Spotify playlist requests.
+    /// </summary>
+    /// <returns>The Spotify playlist page size.</returns>
+    public int GetSpotifyPlaylistsPageSize();
+    
+    /// <summary>
+    /// Gets the cache time-to-live in minutes for Spotify playlist data.
+    /// </summary>
+    /// <returns>The playlist cache TTL in minutes.</returns>
+    public int GetPlaylistCacheTtlMinutes();
+
 }

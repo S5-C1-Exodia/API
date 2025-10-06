@@ -220,7 +220,7 @@ namespace Tests.Managers
                 tokenSetId: 1,
                 provider: "spotify",
                 providerUserId: "puid-1",
-                refreshTokenEnc: "refresh-token-enc",
+                refreshToken: "refresh-token-enc",
                 scope: "scope",
                 accessExpiresAt: now.AddHours(1),
                 updatedAt: now,

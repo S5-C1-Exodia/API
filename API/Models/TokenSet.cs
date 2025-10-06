@@ -10,7 +10,7 @@
         private long _tokenSetId;
         private string _provider;
         private string _providerUserId;
-        private string _refreshTokenEnc;
+        private string _refreshToken;
         private string _scope;
         private DateTime _accessExpiresAt;
         private DateTime _updatedAt;
@@ -22,18 +22,18 @@
         /// <param name="tokenSetId">The unique token set identifier.</param>
         /// <param name="provider">The OAuth provider name.</param>
         /// <param name="providerUserId">The user ID at the provider.</param>
-        /// <param name="refreshTokenEnc">The encrypted refresh token.</param>
+        /// <param name="refreshToken">The encrypted refresh token.</param>
         /// <param name="scope">The OAuth scopes.</param>
         /// <param name="accessExpiresAt">The UTC access token expiration date and time.</param>
         /// <param name="updatedAt">The UTC date and time the token set was last updated.</param>
         /// <param name="sessionId">The associated session ID.</param>
-        public TokenSet(long tokenSetId, string provider, string providerUserId, string refreshTokenEnc,
+        public TokenSet(long tokenSetId, string provider, string providerUserId, string refreshToken,
             string scope, DateTime accessExpiresAt, DateTime updatedAt, string sessionId)
         {
             TokenSetId = tokenSetId;
             Provider = provider;
             ProviderUserId = providerUserId;
-            RefreshTokenEnc = refreshTokenEnc;
+            RefreshToken = refreshToken;
             Scope = scope;
             AccessExpiresAt = accessExpiresAt;
             UpdatedAt = updatedAt;
@@ -46,7 +46,7 @@
         /// <exception cref="ArgumentException">Thrown if value is not positive.</exception>
         public long TokenSetId
         {
-            get { return _tokenSetId; }
+            get => _tokenSetId;
             set
             {
                 if (value <= 0)
@@ -64,7 +64,7 @@
         /// <exception cref="ArgumentException">Thrown if value is null or empty.</exception>
         public string Provider
         {
-            get { return _provider; }
+            get => _provider;
             set
             {
                 if (string.IsNullOrWhiteSpace(value))
@@ -81,17 +81,17 @@
         /// </summary>
         public string ProviderUserId
         {
-            get { return _providerUserId; }
-            set { _providerUserId = value ?? string.Empty; }
+            get => _providerUserId;
+            set => _providerUserId = value ?? string.Empty;
         }
 
         /// <summary>
         /// Gets or sets the encrypted refresh token.
         /// </summary>
-        public string RefreshTokenEnc
+        public string RefreshToken
         {
-            get { return _refreshTokenEnc; }
-            set { _refreshTokenEnc = value ?? string.Empty; }
+            get => _refreshToken;
+            set => _refreshToken = value ?? string.Empty;
         }
 
         /// <summary>
@@ -99,8 +99,8 @@
         /// </summary>
         public string Scope
         {
-            get { return _scope; }
-            set { _scope = value ?? string.Empty; }
+            get => _scope;
+            set => _scope = value ?? string.Empty;
         }
 
         /// <summary>
@@ -108,8 +108,8 @@
         /// </summary>
         public DateTime AccessExpiresAt
         {
-            get { return _accessExpiresAt; }
-            set { _accessExpiresAt = value; }
+            get => _accessExpiresAt;
+            set => _accessExpiresAt = value;
         }
 
         /// <summary>
@@ -117,8 +117,8 @@
         /// </summary>
         public DateTime UpdatedAt
         {
-            get { return _updatedAt; }
-            set { _updatedAt = value; }
+            get => _updatedAt;
+            set => _updatedAt = value;
         }
 
         /// <summary>
@@ -126,8 +126,8 @@
         /// </summary>
         public string SessionId
         {
-            get { return _sessionId; }
-            set { _sessionId = value ?? string.Empty; }
+            get => _sessionId;
+            set => _sessionId = value ?? string.Empty;
         }
     }
 }

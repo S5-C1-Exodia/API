@@ -21,21 +21,7 @@ public class DenylistedRefreshDao : IDenylistedRefreshDao
         _factory = factory ?? throw new ArgumentNullException(nameof(factory));
     }
 
-    /// <summary>
-    /// Checks if a denylisted refresh token exists and is not expired.
-    /// </summary>
-    /// <param name="refreshHash">The hash of the refresh token to check.</param>
-    /// <param name="nowUtc">The current UTC date and time for expiration comparison.</param>
-    /// <returns>
-    /// A task that represents the asynchronous operation. The task result contains
-    /// <c>true</c> if the refresh token exists and is not expired; otherwise, <c>false</c>.
-    /// </returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown if <paramref name="refreshHash"/> is null or empty.
-    /// </exception>
-    /// <exception cref="MySqlConnector.MySqlException">
-    /// Thrown if a database error occurs during execution.
-    /// </exception>
+    /// <inheritdoc />
     public async Task<bool> ExistsAsync(string refreshHash, DateTime nowUtc)
     {
         if (string.IsNullOrWhiteSpace(refreshHash))
@@ -58,20 +44,7 @@ public class DenylistedRefreshDao : IDenylistedRefreshDao
         return obj != null && obj != DBNull.Value;
     }
 
-    /// <summary>
-    /// Inserts or updates a denylisted refresh token entry in the database.
-    /// </summary>
-    /// <param name="refreshHash">The hash of the refresh token to upsert.</param>
-    /// <param name="reason">The reason for denylisting the token. If null, defaults to "logout".</param>
-    /// <param name="addedAtUtc">The UTC date and time when the token was added to the denylist.</param>
-    /// <param name="expiresAtUtc">The UTC date and time when the denylist entry expires.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown if <paramref name="refreshHash"/> is null or empty.
-    /// </exception>
-    /// <exception cref="MySqlConnector.MySqlException">
-    /// Thrown if a database error occurs during execution.
-    /// </exception>
+    /// <inheritdoc />
     public async Task UpsertAsync(string refreshHash, string reason, DateTime addedAtUtc, DateTime expiresAtUtc)
     {
         if (string.IsNullOrWhiteSpace(refreshHash))

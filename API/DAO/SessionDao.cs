@@ -14,14 +14,7 @@ public class SessionDao(ISqlConnectionFactory factory) : ISessionDao
 {
     private readonly ISqlConnectionFactory _factory = factory ?? throw new ArgumentNullException(nameof(factory));
 
-    /// <summary>
-    /// Inserts a new application session into the database.
-    /// </summary>
-    /// <param name="session">The <see cref="AppSession"/> object to insert.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
-    /// <exception cref="DataException">Thrown if the number of affected rows is not 1.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task InsertAsync(AppSession session)
     {
         if (session == null)
@@ -55,16 +48,7 @@ public class SessionDao(ISqlConnectionFactory factory) : ISessionDao
         }
     }
 
-    /// <summary>
-    /// Retrieves an application session from the database by its session identifier.
-    /// </summary>
-    /// <param name="sessionId">The session identifier of the session to retrieve.</param>
-    /// <returns>
-    /// A task representing the asynchronous operation. The task result contains the <see cref="AppSession"/>
-    /// if found; otherwise, <c>null</c>.
-    /// </returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="sessionId"/> is null or empty.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task<AppSession?> GetAsync(string? sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -118,13 +102,7 @@ public class SessionDao(ISqlConnectionFactory factory) : ISessionDao
         }
     }
 
-    /// <summary>
-    /// Deletes an application session from the database by its session identifier.
-    /// </summary>
-    /// <param name="sessionId">The session identifier of the session to delete.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="sessionId"/> is null or empty.</exception>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task DeleteAsync(string sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -140,15 +118,7 @@ public class SessionDao(ISqlConnectionFactory factory) : ISessionDao
         await cmd.ExecuteNonQueryAsync();
     }
 
-    /// <summary>
-    /// Deletes an application session from the database by its session identifier,
-    /// using an existing MySQL connection and transaction.
-    /// </summary>
-    /// <param name="sessionId">The session identifier of the session to delete.</param>
-    /// <param name="conn">An open <see cref="MySqlConnection"/> to use for the operation.</param>
-    /// <param name="tx">An active <see cref="MySqlTransaction"/> to use for the operation.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="MySqlException">Thrown if a database error occurs during execution.</exception>
+    /// <inheritdoc />
     public async Task DeleteAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx)
     {
         await using var cmd = new MySqlCommand("DELETE FROM APPSESSION WHERE SessionId = @sessionId", conn, tx);

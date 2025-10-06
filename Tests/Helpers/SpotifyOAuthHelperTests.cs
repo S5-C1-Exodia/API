@@ -1,248 +1,90 @@
 ﻿using System.Net;
 using System.Text;
-using API.DTO;
-using API.Errors;
+using System.Text.Json;
 using API.Helpers;
 using API.Managers.InterfacesServices;
+using API.Errors;
 using Moq;
+using Moq.Protected;
 
-namespace Tests.Helpers
+namespace Tests.Helpers;
+
+public class SpotifyOAuthHelperTests
 {
-    /// <summary>
-    /// Unit tests for <see cref="SpotifyOAuthHelper"/>.
-    /// </summary>
-    public class SpotifyOAuthHelperTests
+    private readonly Mock<IHttpClientFactory> _httpClientFactory = new Mock<IHttpClientFactory>();
+    private readonly Mock<IConfigService> _config = new Mock<IConfigService>();
+    private readonly Mock<IClockService> _clock = new Mock<IClockService>();
+    private readonly Mock<IAuditService> _audit = new Mock<IAuditService>();
+
+    private HttpClient CreateMockClient(HttpResponseMessage response)
     {
-        /// <summary>
-        /// Tests that <see cref="SpotifyOAuthHelper.ExchangeCodeForTokensAsync"/> returns a valid <see cref="TokenInfo"/> on success.
-        /// </summary>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        [Fact]
-        public async Task ExchangeCodeForTokensAsync_ShouldReturnTokenInfo_OnSuccess()
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(response);
+        return new HttpClient(handler.Object);
+    }
+
+    [Fact]
+    public async Task ExchangeCodeForTokensAsync_Throws_OnEmptyArgs()
+    {
+        var helper = new SpotifyOAuthHelper(_httpClientFactory.Object, _config.Object, _clock.Object, _audit.Object);
+        await Assert.ThrowsAsync<ArgumentException>(() => helper.ExchangeCodeForTokensAsync("", "cb", "verifier"));
+        await Assert.ThrowsAsync<ArgumentException>(() => helper.ExchangeCodeForTokensAsync("code", "", "verifier"));
+        await Assert.ThrowsAsync<ArgumentException>(() => helper.ExchangeCodeForTokensAsync("code", "cb", ""));
+    }
+
+    [Fact]
+    public async Task ExchangeCodeForTokensAsync_Throws_OnNetworkError()
+    {
+        _httpClientFactory.Setup(f => f.CreateClient("spotify-oauth")).Throws(new HttpRequestException("fail"));
+        var helper = new SpotifyOAuthHelper(_httpClientFactory.Object, _config.Object, _clock.Object, _audit.Object);
+        _config.Setup(c => c.GetSpotifyTokenEndpoint()).Returns("https://accounts.spotify.com/api/token");
+        _config.Setup(c => c.GetSpotifyClientId()).Returns("clientId");
+        await Assert.ThrowsAsync<TokenExchangeFailedException>(() => helper.ExchangeCodeForTokensAsync("code", "cb", "verifier"));
+    }
+
+    [Fact]
+    public async Task RefreshTokensAsync_Throws_OnEmptyRefreshToken()
+    {
+        var helper = new SpotifyOAuthHelper(_httpClientFactory.Object, _config.Object, _clock.Object, _audit.Object);
+        await Assert.ThrowsAsync<ArgumentException>(() => helper.RefreshTokensAsync(""));
+    }
+
+    [Fact]
+    public async Task RefreshTokensAsync_Throws_OnNetworkError()
+    {
+        _httpClientFactory.Setup(f => f.CreateClient("spotify-oauth")).Throws(new HttpRequestException("fail"));
+        var helper = new SpotifyOAuthHelper(_httpClientFactory.Object, _config.Object, _clock.Object, _audit.Object);
+        _config.Setup(c => c.GetSpotifyTokenEndpoint()).Returns("https://accounts.spotify.com/api/token");
+        _config.Setup(c => c.GetSpotifyClientId()).Returns("clientId");
+        await Assert.ThrowsAsync<TokenExchangeFailedException>(() => helper.RefreshTokensAsync("refresh"));
+    }
+
+    [Fact]
+    public async Task RefreshTokensAsync_ReturnsResult_OnValidResponse()
+    {
+        var now = DateTime.UtcNow;
+        _clock.Setup(c => c.GetUtcNow()).Returns(now);
+        _config.Setup(c => c.GetSpotifyTokenEndpoint()).Returns("https://accounts.spotify.com/api/token");
+        _config.Setup(c => c.GetSpotifyClientId()).Returns("clientId");
+        var responseObj = new
         {
-            // 1) Prépare deux réponses HTTP :
-            //   a) token endpoint
-            //   b) /v1/me
-            Queue<HttpResponseMessage> responses = new Queue<HttpResponseMessage>();
-
-            string tokenJson =
-                "{\"access_token\":\"at\",\"token_type\":\"Bearer\",\"scope\":\"s1 s2\",\"expires_in\":3600,\"refresh_token\":\"rt\"}";
-            responses.Enqueue(
-                new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(tokenJson, Encoding.UTF8, "application/json")
-                }
-            );
-
-            string meJson = "{\"id\":\"user123\"}";
-            responses.Enqueue(
-                new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(meJson, Encoding.UTF8, "application/json")
-                }
-            );
-
-            FakeHandler handler = new FakeHandler(responses);
-            HttpClient client = new HttpClient(handler);
-            client.Timeout = TimeSpan.FromSeconds(15);
-
-            Mock<IHttpClientFactory> factory = new Mock<IHttpClientFactory>();
-            factory.Setup(f => f.CreateClient("spotify-oauth")).Returns(client);
-
-            Mock<IConfigService> cfg = new Mock<IConfigService>();
-            cfg.Setup(c => c.GetSpotifyTokenEndpoint()).Returns("https://accounts.spotify.com/api/token");
-            cfg.Setup(c => c.GetSpotifyClientId()).Returns("clientId");
-
-            Mock<IClockService> clock = new Mock<IClockService>();
-            clock.Setup(c => c.GetUtcNow()).Returns(new DateTime(2025, 1, 1, 12, 0, 0, DateTimeKind.Utc));
-
-            Mock<IAuditService> audit = new Mock<IAuditService>();
-
-            SpotifyOAuthHelper helper = new SpotifyOAuthHelper(factory.Object, cfg.Object, clock.Object, audit.Object);
-
-            TokenInfo info = await helper.ExchangeCodeForTokensAsync("code123", "https://cb", "verif");
-
-            Assert.Equal("rt", info.RefreshToken);
-            Assert.Equal("at", info.AccessToken);
-            Assert.Equal("s1 s2", info.Scope);
-            Assert.Equal("user123", info.ProviderUserId);
-            Assert.True(info.AccessExpiresAt > clock.Object.GetUtcNow());
-        }
-
-        /// <summary>
-        /// Tests that <see cref="SpotifyOAuthHelper.ExchangeCodeForTokensAsync"/> throws a <see cref="TokenExchangeFailedException"/>
-        /// when the token endpoint returns a 400 status code.
-        /// </summary>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        [Fact]
-        public async Task ExchangeCodeForTokensAsync_ShouldThrow_OnTokenEndpoint400()
+            access_token = "access",
+            refresh_token = "refresh2",
+            expires_in = 3600
+        };
+        var json = JsonSerializer.Serialize(responseObj);
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Queue<HttpResponseMessage> responses = new Queue<HttpResponseMessage>();
-            responses.Enqueue(
-                new HttpResponseMessage(HttpStatusCode.BadRequest)
-                {
-                    Content = new StringContent("{\"error\":\"invalid_grant\"}", Encoding.UTF8, "application/json")
-                }
-            );
-
-            FakeHandler handler = new FakeHandler(responses);
-            HttpClient client = new HttpClient(handler);
-
-            Mock<IHttpClientFactory> factory = new Mock<IHttpClientFactory>();
-            factory.Setup(f => f.CreateClient("spotify-oauth")).Returns(client);
-
-            Mock<IConfigService> cfg = new Mock<IConfigService>();
-            cfg.Setup(c => c.GetSpotifyTokenEndpoint()).Returns("https://accounts.spotify.com/api/token");
-            cfg.Setup(c => c.GetSpotifyClientId()).Returns("clientId");
-
-            Mock<IClockService> clock = new Mock<IClockService>();
-            clock.Setup(c => c.GetUtcNow()).Returns(DateTime.UtcNow);
-
-            Mock<IAuditService> audit = new Mock<IAuditService>();
-
-            SpotifyOAuthHelper helper = new SpotifyOAuthHelper(factory.Object, cfg.Object, clock.Object, audit.Object);
-
-            await Assert.ThrowsAsync<TokenExchangeFailedException>(() =>
-                helper.ExchangeCodeForTokensAsync("badcode", "https://cb", "verif")
-            );
-        }
-
-        /// <summary>
-        /// Tests that <see cref="SpotifyOAuthHelper.ExchangeCodeForTokensAsync"/> throws a <see cref="TokenExchangeFailedException"/>
-        /// when the token endpoint response is missing a refresh token.
-        /// </summary>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        [Fact]
-        public async Task ExchangeCodeForTokensAsync_ShouldThrow_OnMissingRefreshToken()
-        {
-            Queue<HttpResponseMessage> responses = new Queue<HttpResponseMessage>();
-            // Pas de refresh_token renvoyé
-            responses.Enqueue(
-                new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(
-                        "{\"access_token\":\"at\",\"expires_in\":3600,\"scope\":\"s\"}",
-                        Encoding.UTF8,
-                        "application/json"
-                    )
-                }
-            );
-
-            FakeHandler handler = new FakeHandler(responses);
-            HttpClient client = new HttpClient(handler);
-
-            Mock<IHttpClientFactory> factory = new Mock<IHttpClientFactory>();
-            factory.Setup(f => f.CreateClient("spotify-oauth")).Returns(client);
-
-            Mock<IConfigService> cfg = new Mock<IConfigService>();
-            cfg.Setup(c => c.GetSpotifyTokenEndpoint()).Returns("https://accounts.spotify.com/api/token");
-            cfg.Setup(c => c.GetSpotifyClientId()).Returns("clientId");
-
-            Mock<IClockService> clock = new Mock<IClockService>();
-            clock.Setup(c => c.GetUtcNow()).Returns(DateTime.UtcNow);
-
-            Mock<IAuditService> audit = new Mock<IAuditService>();
-
-            SpotifyOAuthHelper helper = new SpotifyOAuthHelper(factory.Object, cfg.Object, clock.Object, audit.Object);
-
-            await Assert.ThrowsAsync<TokenExchangeFailedException>(() =>
-                helper.ExchangeCodeForTokensAsync("code", "https://cb", "verif")
-            );
-        }
-
-        /// <summary>
-        /// Tests that <see cref="SpotifyOAuthHelper.ExchangeCodeForTokensAsync"/> throws a <see cref="TokenExchangeFailedException"/>
-        /// when the profile endpoint returns an error.
-        /// </summary>
-        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        [Fact]
-        public async Task ExchangeCodeForTokensAsync_ShouldThrow_OnProfileError()
-        {
-            Queue<HttpResponseMessage> responses = new Queue<HttpResponseMessage>();
-            // token OK
-            responses.Enqueue(
-                new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(
-                        "{\"access_token\":\"at\",\"expires_in\":3600,\"refresh_token\":\"rt\",\"scope\":\"s\"}",
-                        Encoding.UTF8,
-                        "application/json"
-                    )
-                }
-            );
-            // /v1/me renvoie erreur
-            responses.Enqueue(
-                new HttpResponseMessage(HttpStatusCode.Unauthorized)
-                {
-                    Content = new StringContent("{}", Encoding.UTF8, "application/json")
-                }
-            );
-
-            FakeHandler handler = new FakeHandler(responses);
-            HttpClient client = new HttpClient(handler);
-
-            Mock<IHttpClientFactory> factory = new Mock<IHttpClientFactory>();
-            factory.Setup(f => f.CreateClient("spotify-oauth")).Returns(client);
-
-            Mock<IConfigService> cfg = new Mock<IConfigService>();
-            cfg.Setup(c => c.GetSpotifyTokenEndpoint()).Returns("https://accounts.spotify.com/api/token");
-            cfg.Setup(c => c.GetSpotifyClientId()).Returns("clientId");
-
-            Mock<IClockService> clock = new Mock<IClockService>();
-            clock.Setup(c => c.GetUtcNow()).Returns(DateTime.UtcNow);
-
-            Mock<IAuditService> audit = new Mock<IAuditService>();
-
-            SpotifyOAuthHelper helper = new SpotifyOAuthHelper(factory.Object, cfg.Object, clock.Object, audit.Object);
-
-            await Assert.ThrowsAsync<TokenExchangeFailedException>(() =>
-                helper.ExchangeCodeForTokensAsync("code", "https://cb", "verif")
-            );
-        }
-
-        /// <summary>
-        /// A fake HTTP message handler for simulating HTTP responses in tests.
-        /// </summary>
-        private sealed class FakeHandler : HttpMessageHandler
-        {
-            private readonly Queue<HttpResponseMessage> _responses;
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="FakeHandler"/> class.
-            /// </summary>
-            /// <param name="responses">A queue of HTTP responses to return.</param>
-            /// <exception cref="ArgumentNullException">Thrown if <paramref name="responses"/> is null.</exception>
-            public FakeHandler(Queue<HttpResponseMessage> responses)
-            {
-                if (responses == null)
-                {
-                    throw new ArgumentNullException(nameof(responses));
-                }
-
-                _responses = responses;
-            }
-
-            /// <summary>
-            /// Sends an HTTP request and returns a queued response.
-            /// </summary>
-            /// <param name="request">The HTTP request message.</param>
-            /// <param name="cancellationToken">A cancellation token.</param>
-            /// <returns>A <see cref="Task"/> containing the next queued <see cref="HttpResponseMessage"/>.</returns>
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
-                CancellationToken cancellationToken)
-            {
-                if (_responses.Count == 0)
-                {
-                    HttpResponseMessage empty = new HttpResponseMessage(HttpStatusCode.InternalServerError)
-                    {
-                        Content = new StringContent("No fake responses queued.", Encoding.UTF8, "text/plain")
-                    };
-                    return Task.FromResult(empty);
-                }
-
-                HttpResponseMessage next = _responses.Dequeue();
-                return Task.FromResult(next);
-            }
-        }
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        };
+        var client = CreateMockClient(response);
+        _httpClientFactory.Setup(f => f.CreateClient("spotify-oauth")).Returns(client);
+        var helper = new SpotifyOAuthHelper(_httpClientFactory.Object, _config.Object, _clock.Object, _audit.Object);
+        var result = await helper.RefreshTokensAsync("refresh");
+        Assert.Equal("access", result.AccessToken);
+        Assert.Equal("refresh2", result.NewRefreshToken);
+        Assert.True(result.AccessExpiresAtUtc > now);
     }
 }

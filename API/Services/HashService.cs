@@ -4,8 +4,10 @@ using API.Managers.InterfacesServices;
 
 namespace API.Services
 {
+    /// <inheritdoc />
     public class HashService : IHashService
     {
+        /// <inheritdoc />
         public string Sha256Base64(string? input)
         {
             input ??= string.Empty;
