@@ -50,12 +50,13 @@ public interface ITokenDao
     Task DeleteBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx);
 
     /// <summary>
-    /// Met à jour le refresh token et la date d\'expiration de l\'accès après un flux de rafraîchissement réussi.
+    /// Asynchronously updates the token set after a refresh operation.
     /// </summary>
-    /// <param name="sessionId">Identifiant de la session associée au token.</param>
-    /// <param name="newRefreshToken">Nouveau refresh token à enregistrer.</param>
-    /// <param name="newAccessExpiresAtUtc">Nouvelle date d\'expiration de l\'access token (UTC).</param>
-    /// <param name="ct">Jeton d\'annulation pour l\'opération asynchrone (optionnel).</param>
-    Task UpdateAfterRefreshAsync(string sessionId, string newRefreshToken, DateTime newAccessExpiresAtUtc,
+    /// <param name="sessionId">The identifier of the session associated with the token set.</param>
+    /// <param name="refreshToken">The new refresh token to update.</param>
+    /// <param name="newAccessExpiresAtUtc">The new UTC expiration date and time for the access token.</param>
+    /// <param name="ct">Optional cancellation token for the asynchronous operation.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous update operation.</returns>
+    Task UpdateAfterRefreshAsync(string sessionId, string refreshToken, DateTime newAccessExpiresAtUtc,
         CancellationToken ct = default);
 }

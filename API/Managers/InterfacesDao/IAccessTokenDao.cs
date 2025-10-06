@@ -3,7 +3,8 @@
 namespace Api.Managers.InterfacesDao;
 
 /// <summary>
-/// Defines data access operations for access tokens, including deletion by session identifier.
+/// Interface for data access operations related to access tokens.
+/// Provides methods for deleting, retrieving, and upserting access tokens associated with a session identifier.
 /// </summary>
 public interface IAccessTokenDao
 {
@@ -29,15 +30,29 @@ public interface IAccessTokenDao
     /// <exception cref="ArgumentException">Thrown if <paramref name="sessionId"/> is null or empty.</exception>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="conn"/> or <paramref name="tx"/> is null.</exception>
     Task DeleteBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx);
-    
+
     /// <summary>
-    /// Returns a still-valid access token for the session, or null if none or expired.
+    /// Asynchronously retrieves a valid access token for the specified session, or null if none exists or is expired.
     /// </summary>
+    /// <param name="sessionId">The session identifier to search for a valid access token.</param>
+    /// <param name="nowUtc">The current UTC time used to check token validity.</param>
+    /// <param name="ct">Optional cancellation token.</param>
+    /// <returns>
+    /// A <see cref="Task{TResult}"/> containing the valid access token as a string, or null if not found or expired.
+    /// </returns>
     Task<string?> GetValidBySessionAsync(string sessionId, DateTime nowUtc, CancellationToken ct = default);
 
     /// <summary>
-    /// Upserts the current access token and its expiration for the given session.
+    /// Asynchronously upserts (inserts or updates) the access token and its expiration for the specified session.
     /// </summary>
-    Task UpsertAsync(string sessionId, string accessTokenEnc, DateTime expiresAtUtc, DateTime nowUtc, CancellationToken ct = default);
-
+    /// <param name="sessionId">The session identifier for which to upsert the access token.</param>
+    /// <param name="accessToken">The access token to store.</param>
+    /// <param name="expiresAtUtc">The UTC expiration time of the access token.</param>
+    /// <param name="nowUtc">The current UTC time.</param>
+    /// <param name="ct">Optional cancellation token.</param>
+    /// <returns>
+    /// A <see cref="Task"/> representing the asynchronous upsert operation.
+    /// </returns>
+    Task UpsertAsync(string sessionId, string accessToken, DateTime expiresAtUtc, DateTime nowUtc,
+        CancellationToken ct = default);
 }

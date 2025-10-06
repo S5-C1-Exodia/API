@@ -58,12 +58,6 @@ public interface IPlaylistCacheDao
     /// <param name="expiresAtUtc">Expiration timestamp (UTC) for this cache entry.</param>
     /// <param name="nowUtc">Current UTC timestamp (for audit columns).</param>
     /// <param name="ct">Cancellation token.</param>
-    Task UpsertPageAsync(
-        string sessionId,
-        string providerUserId,
-        string? pageToken,
-        string pageJson,
-        DateTime expiresAtUtc,
-        DateTime nowUtc,
-        CancellationToken ct = default);
+    Task UpsertPageAsync(string sessionId, string providerUserId, string? pageToken, string pageJson, DateTime expiresAtUtc,
+        DateTime nowUtc, CancellationToken ct = default);
 }
