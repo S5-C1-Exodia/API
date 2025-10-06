@@ -3,7 +3,6 @@ using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
 using Api.Models;
 using Moq;
-using MySqlConnector;
 
 namespace Tests.Services
 {
@@ -12,16 +11,15 @@ namespace Tests.Services
     /// </summary>
     public class SessionServiceTests
     {
-        private readonly Mock<ISessionDao> _dao = new();
-        private readonly Mock<IIdGenerator> _ids = new();
-        private readonly Mock<IClockService> _clock = new();
+        private readonly Mock<ISessionDao> _dao = new Mock<ISessionDao>();
+        private readonly Mock<IIdGenerator> _ids = new Mock<IIdGenerator>();
 
         [Fact]
         public async Task CreateSessionAsync_ShouldGenerateId_AndInsert()
         {
             _ids.Setup(i => i.NewSessionId()).Returns("session123");
             var now = DateTime.UtcNow;
-            var svc = new SessionService(_dao.Object, _ids.Object, _clock.Object);
+            var svc = new SessionService(_dao.Object, _ids.Object);
 
             string sid = await svc.CreateSessionAsync("deviceX", now, now.AddMinutes(30));
 
@@ -34,7 +32,7 @@ namespace Tests.Services
         {
             var expected = new AppSession("sid", "dev", DateTime.UtcNow, DateTime.UtcNow, DateTime.UtcNow.AddMinutes(1));
             _dao.Setup(d => d.GetAsync("sid")).ReturnsAsync(expected);
-            var svc = new SessionService(_dao.Object, _ids.Object, _clock.Object);
+            var svc = new SessionService(_dao.Object, _ids.Object);
 
             var res = await svc.GetSessionAsync("sid");
 
@@ -44,7 +42,7 @@ namespace Tests.Services
         [Fact]
         public async Task DeleteAsync_ShouldCallDao()
         {
-            var svc = new SessionService(_dao.Object, _ids.Object, _clock.Object);
+            var svc = new SessionService(_dao.Object, _ids.Object);
 
             await svc.DeleteAsync("sid");
 
