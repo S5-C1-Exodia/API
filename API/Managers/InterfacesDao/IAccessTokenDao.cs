@@ -29,4 +29,15 @@ public interface IAccessTokenDao
     /// <exception cref="ArgumentException">Thrown if <paramref name="sessionId"/> is null or empty.</exception>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="conn"/> or <paramref name="tx"/> is null.</exception>
     Task DeleteBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx);
+    
+    /// <summary>
+    /// Returns a still-valid access token for the session, or null if none or expired.
+    /// </summary>
+    Task<string?> GetValidBySessionAsync(string sessionId, DateTime nowUtc, CancellationToken ct = default);
+
+    /// <summary>
+    /// Upserts the current access token and its expiration for the given session.
+    /// </summary>
+    Task UpsertAsync(string sessionId, string accessTokenEnc, DateTime expiresAtUtc, DateTime nowUtc, CancellationToken ct = default);
+
 }
