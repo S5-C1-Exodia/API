@@ -76,7 +76,7 @@ public class PlaylistCacheDao(ISqlConnectionFactory factory) : IPlaylistCacheDao
     }
 
     /// <inheritdoc />
-    public async Task<string?> GetPageJsonAsync(string sessionId, string? pageToken, DateTime nowUtc,
+    public async Task<string?> GetPageJsonAsync(string sessionId, string pageToken, DateTime nowUtc,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -150,7 +150,7 @@ on duplicate key update
         // Upsert cache row
         await using (var cmd = conn.CreateCommand())
         {
-            cmd.Transaction = (MySqlTransaction)tx;
+            cmd.Transaction = tx;
             cmd.CommandText = upsertCache;
             cmd.Parameters.AddWithValue("@puid", providerUserId);
             cmd.Parameters.AddWithValue("@ptok", (object?)pageToken ?? DBNull.Value);
@@ -163,7 +163,7 @@ on duplicate key update
         // Upsert session link
         await using (var cmd = conn.CreateCommand())
         {
-            cmd.Transaction = (MySqlTransaction)tx;
+            cmd.Transaction = tx;
             cmd.CommandText = upsertLink;
             cmd.Parameters.AddWithValue("@sid", sessionId);
             cmd.Parameters.AddWithValue("@puid", providerUserId);
