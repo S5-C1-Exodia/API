@@ -183,7 +183,7 @@ public class SpotifyController : ControllerBase
         [FromBody] PlaylistPreferencesDto body,
         CancellationToken ct)
     {
-        var ids = body?.PlaylistIds ?? [];
+        List<string> ids = body?.PlaylistIds ?? [];
         await _preferences.RemoveFromSelectionAsync(sessionId, ids, ct);
         return NoContent();
     }

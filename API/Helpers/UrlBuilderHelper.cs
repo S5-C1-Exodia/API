@@ -1,4 +1,5 @@
-﻿using System.Web;
+﻿using System.Collections.Specialized;
+using System.Web;
 using Api.Managers.InterfacesHelpers;
 using API.Managers.InterfacesServices;
 
@@ -41,7 +42,7 @@ public class UrlBuilderHelper(IConfigService config) : IUrlBuilderHelper
         UriBuilder builder = new UriBuilder(endpoint);
         string query = string.Empty;
 
-        var qp = HttpUtility.ParseQueryString(query);
+        NameValueCollection qp = HttpUtility.ParseQueryString(query);
         qp["client_id"] = clientId;
         qp["response_type"] = "code";
         qp["redirect_uri"] = redirectUri;

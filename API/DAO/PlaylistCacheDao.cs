@@ -19,9 +19,9 @@ public class PlaylistCacheDao(ISqlConnectionFactory factory) : IPlaylistCacheDao
 
         const string sql = "delete from playlistcache where ProviderUserId = @puid";
 
-        await using var conn = factory.Create();
+        await using MySqlConnection conn = factory.Create();
         await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
+        await using MySqlCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@puid", providerUserId);
         await cmd.ExecuteNonQueryAsync();
@@ -36,7 +36,7 @@ public class PlaylistCacheDao(ISqlConnectionFactory factory) : IPlaylistCacheDao
 
         const string sql = "delete from playlistcache where ProviderUserId = @puid";
 
-        using var cmd = conn.CreateCommand();
+        await using MySqlCommand cmd = conn.CreateCommand();
         cmd.Transaction = tx;
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@puid", providerUserId);
@@ -51,9 +51,9 @@ public class PlaylistCacheDao(ISqlConnectionFactory factory) : IPlaylistCacheDao
 
         const string sql = "delete from playlistcache_session where SessionId = @sid";
 
-        await using var conn = factory.Create();
+        await using MySqlConnection conn = factory.Create();
         await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
+        await using MySqlCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@sid", sessionId);
         await cmd.ExecuteNonQueryAsync();
@@ -68,7 +68,7 @@ public class PlaylistCacheDao(ISqlConnectionFactory factory) : IPlaylistCacheDao
 
         const string sql = "delete from playlistcache_session where SessionId = @sid";
 
-        using var cmd = conn.CreateCommand();
+        await using MySqlCommand cmd = conn.CreateCommand();
         cmd.Transaction = tx;
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@sid", sessionId);
@@ -81,7 +81,7 @@ public class PlaylistCacheDao(ISqlConnectionFactory factory) : IPlaylistCacheDao
     {
         if (string.IsNullOrWhiteSpace(sessionId))
             throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
-
+        
         const string sql = @"
 select pc.Json
 from playlistcache pc
@@ -99,10 +99,10 @@ where pcs.SessionId = @sid
   and pc.ExpiresAt > @now
 limit 1;";
 
-        await using var conn = factory.Create();
+        await using MySqlConnection conn = factory.Create();
         await conn.OpenAsync(ct);
 
-        await using var cmd = conn.CreateCommand();
+        await using MySqlCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@sid", sessionId);
         cmd.Parameters.AddWithValue("@ptok", (object?)pageToken ?? DBNull.Value);
@@ -143,12 +143,12 @@ values (@sid, @puid, @ptok, @now)
 on duplicate key update
   LinkedAt = values(LinkedAt);";
 
-        await using var conn = factory.Create();
+        await using MySqlConnection conn = factory.Create();
         await conn.OpenAsync(ct);
-        await using var tx = await conn.BeginTransactionAsync(ct);
+        await using MySqlTransaction tx = await conn.BeginTransactionAsync(ct);
 
         // Upsert cache row
-        await using (var cmd = conn.CreateCommand())
+        await using (MySqlCommand cmd = conn.CreateCommand())
         {
             cmd.Transaction = tx;
             cmd.CommandText = upsertCache;
@@ -161,7 +161,7 @@ on duplicate key update
         }
 
         // Upsert session link
-        await using (var cmd = conn.CreateCommand())
+        await using (MySqlCommand cmd = conn.CreateCommand())
         {
             cmd.Transaction = tx;
             cmd.CommandText = upsertLink;
