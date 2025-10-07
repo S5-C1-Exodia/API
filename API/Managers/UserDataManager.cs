@@ -43,7 +43,6 @@ namespace API.Managers
         }
 
         /// <inheritdoc />
-        /// <inheritdoc />
         public async Task<PlaylistPageDto> GetPlaylistsAsync(string sessionId, string? pageToken,
             CancellationToken ct = default)
         {
@@ -53,7 +52,7 @@ namespace API.Managers
             DateTime nowUtc = _clock.GetUtcNow();
 
             // Normalize page token for DB keys (first page = empty string; never NULL in DB).
-            string normalizedPageToken = pageToken ?? "1";
+            string normalizedPageToken = pageToken ?? string.Empty;
 
             // 1) Retrieve TokenSet for the session (401 if missing)
             TokenSet? tokenSet = await _tokenDao.GetBySessionAsync(sessionId);
@@ -90,7 +89,7 @@ namespace API.Managers
             }
 
             // 4) Cache miss → call Spotify (Spotify receives the original pageToken, not normalized)
-            PlaylistPageDto livePage = await _spotifyApiHelper.GetPlaylistsAsync(accessToken!, pageToken, ct);
+            PlaylistPageDto livePage = await _spotifyApiHelper.GetPlaylistsAsync(accessToken!, normalizedPageToken, ct);
 
             // 5) Persist page with TTL (keyed by normalized token)
             int ttlMinutes = _config.GetPlaylistCacheTtlMinutes();

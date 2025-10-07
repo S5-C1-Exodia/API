@@ -1,5 +1,6 @@
 ﻿using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
+using MySqlConnector;
 
 namespace API.DAO;
 
@@ -33,9 +34,9 @@ public class DenylistedRefreshDao : IDenylistedRefreshDao
         WHERE RefreshHash = @h AND ExpiresAt > @now
         LIMIT 1;";
 
-        await using var conn = _factory.Create();
+        await using MySqlConnection conn = _factory.Create();
         await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
+        await using MySqlCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@h", refreshHash);
         cmd.Parameters.AddWithValue("@now", nowUtc);
@@ -58,9 +59,9 @@ public class DenylistedRefreshDao : IDenylistedRefreshDao
             AddedAt = VALUES(AddedAt),
             ExpiresAt = VALUES(ExpiresAt);";
 
-        await using var conn = _factory.Create();
+        await using MySqlConnection conn = _factory.Create();
         await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
+        await using MySqlCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@h", refreshHash);
         cmd.Parameters.AddWithValue("@r", reason ?? "logout");

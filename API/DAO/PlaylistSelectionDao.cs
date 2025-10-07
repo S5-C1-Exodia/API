@@ -19,9 +19,9 @@ public class PlaylistSelectionDao(ISqlConnectionFactory _factory) : IPlaylistSel
 
         const string sql = "delete from playlistselection where SessionId = @sid";
 
-        await using var conn = _factory.Create();
+        await using MySqlConnection conn = _factory.Create();
         await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
+        await using MySqlCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@sid", sessionId);
         await cmd.ExecuteNonQueryAsync();
@@ -36,7 +36,7 @@ public class PlaylistSelectionDao(ISqlConnectionFactory _factory) : IPlaylistSel
 
         const string sql = "delete from playlistselection where SessionId = @sid";
 
-        using var cmd = conn.CreateCommand();
+        await using MySqlCommand cmd = conn.CreateCommand();
         cmd.Transaction = tx;
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@sid", sessionId);
