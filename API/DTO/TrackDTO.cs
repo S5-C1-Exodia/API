@@ -18,7 +18,7 @@ public class TrackDTO
     /// <summary>
     /// Image for the track
     /// </summary>
-    public string ImageUrl { get; set; }
+    public string? ImageUrl { get; set; }
     
     /// <summary>
     /// Author of the track

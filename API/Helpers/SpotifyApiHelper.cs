@@ -74,4 +74,67 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
 
         return dto;
     }
+    
+    /// <summary>
+    /// Retrieves the list of tracks in a specific playlist from Spotify.
+    /// </summary>
+    /// <param name="accessToken">Valid Spotify access token.</param>
+    /// <param name="playlistId">Spotify playlist ID.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A DTO containing the playlist’s tracks.</returns>
+    public async Task<PlaylistTracksDTO> GetPlaylistTracks(string accessToken, string playlistId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(accessToken))
+            throw new ArgumentException("accessToken cannot be null or empty.", nameof(accessToken));
+        if (string.IsNullOrWhiteSpace(playlistId))
+            throw new ArgumentException("playlistId cannot be null or empty.", nameof(playlistId));
+
+        string url = $"playlists/{playlistId}/tracks?limit={_config.GetSpotifyPlaylistsPageSize()}";
+
+        using HttpRequestMessage req = new HttpRequestMessage(HttpMethod.Get, url);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using HttpResponseMessage resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+        resp.EnsureSuccessStatusCode();
+
+        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        PlaylistTracksDTO? json = await JsonSerializer.DeserializeAsync<PlaylistTracksDTO>(
+            stream,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true },
+            ct
+        );
+
+        if (json is null)
+            throw new InvalidOperationException("Failed to deserialize Spotify playlist tracks response.");
+
+        List<TrackDTO> tracks = json.Tracks?
+            .Where(i => i.Id != null)
+            .Select(i => new TrackDTO
+            {
+                Id = i.Id ?? string.Empty,
+                Name = i.Name ?? string.Empty,
+                ImageUrl = i.Album?.ImageUrl?.FirstOrDefault().ToString(),
+                Author = i.Author != null
+                    ? new ArtistDTO
+                    {
+                        Id = i.Author.Id,
+                        Name = i.Author.Name
+                    }
+                    : null,
+                Album = (i.Album != null
+                    ? new AlbumDTO
+                    {
+                        Id = i.Album.Id,
+                        ImageUrl = i.Album.ImageUrl?.FirstOrDefault().ToString() ?? string.Empty,
+                    }
+                    : null)!
+            }).ToList() ?? [];
+
+        return new PlaylistTracksDTO
+        {
+            PlaylistId = playlistId,
+            Limit = json.Limit,
+            Tracks = tracks
+        };
+    }
 }

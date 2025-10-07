@@ -94,6 +94,7 @@ builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<ITokenDenyListService, TokenDenyListService>();
 builder.Services.AddScoped<IHashService, HashService>();
 builder.Services.AddScoped<ITransactionRunner, MySqlTransactionRunner>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 
 // Helpers
@@ -118,6 +119,7 @@ builder.Services.AddSingleton<IErrorMapper, DefaultErrorMapper>();
 // Managers
 builder.Services.AddScoped<IAuthManager, AuthManager>();
 builder.Services.AddScoped<IUserDataManager, UserDataManager>();
+builder.Services.AddScoped<IPlaylistManager, PlaylistManager>();
 
 WebApplication app = builder.Build();
 
