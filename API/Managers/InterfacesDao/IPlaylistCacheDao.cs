@@ -44,7 +44,7 @@ public interface IPlaylistCacheDao
     /// <param name="pageToken">Opaque page token (null/empty for first page).</param>
     /// <param name="nowUtc">Current UTC timestamp (provided by ClockService).</param>
     /// <param name="ct">Cancellation token.</param>
-    Task<string?> GetPageJsonAsync(string sessionId, string? pageToken, DateTime nowUtc, CancellationToken ct = default);
+    Task<string?> GetPageJsonAsync(string sessionId, string pageToken, DateTime nowUtc, CancellationToken ct = default);
 
     /// <summary>
     /// Upserts a cached page and (idempotently) links it to the given session.

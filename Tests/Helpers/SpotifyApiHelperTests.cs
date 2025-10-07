@@ -96,6 +96,6 @@ public class SpotifyApiHelperTests
             BaseAddress = new Uri("https://api.spotify.com/v1/")
         };
         var helper = new SpotifyApiHelper(client, _config.Object);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => helper.GetPlaylistsAsync("token", null));
+        await Assert.ThrowsAsync<JsonException>(() => helper.GetPlaylistsAsync("token", null));
     }
 }

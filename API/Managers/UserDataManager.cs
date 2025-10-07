@@ -43,55 +43,55 @@ namespace API.Managers
         }
 
         /// <inheritdoc />
-        public async Task<PlaylistPageDto> GetPlaylistsAsync(string sessionId, string? pageToken, CancellationToken ct = default)
+        public async Task<PlaylistPageDto> GetPlaylistsAsync(string sessionId, string? pageToken,
+            CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(sessionId))
                 throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
 
             DateTime nowUtc = _clock.GetUtcNow();
 
+            // Normalize page token for DB keys (first page = empty string; never NULL in DB).
+            string normalizedPageToken = pageToken ?? string.Empty;
+
             // 1) Retrieve TokenSet for the session (401 if missing)
-            // NOTE: your current TokenDao.GetBySessionAsync signature doesn't take a CancellationToken.
             TokenSet? tokenSet = await _tokenDao.GetBySessionAsync(sessionId);
             if (tokenSet is null)
                 throw new MissingTokenSetException("No TokenSet associated with the given session.");
 
             string providerUserId = tokenSet.ProviderUserId;
 
-            // 2) Get a valid access token for this session or refresh if absent/expired
+            // 2) Try to get a valid access token for this session; refresh if absent/expired
             string? accessToken = await _accessTokenDao.GetValidBySessionAsync(sessionId, nowUtc, ct);
             if (string.IsNullOrEmpty(accessToken))
             {
-                // refresh token is stored in plaintext for now (per your note)
                 string refreshToken = tokenSet.RefreshToken;
 
-                // Refresh flow: returns new access token (+ optional rotated refresh token) and expiry
                 RefreshResult refreshed = await _spotifyOAuthHelper.RefreshTokensAsync(refreshToken, ct);
                 accessToken = refreshed.AccessToken;
 
-                // Persist access token in DB (short-lived)
+                // Persist short-lived access token
                 await _accessTokenDao.UpsertAsync(sessionId, accessToken, refreshed.AccessExpiresAtUtc, nowUtc, ct);
 
-                // If provider rotated refresh token, update TokenSet mirror; else, at least update the access expiry
-                string effectiveRefreshToken = string.IsNullOrEmpty(refreshed.NewRefreshToken)
+                // If refresh token rotated, update TokenSet; always mirror latest access expiry
+                string effectiveRefresh = string.IsNullOrEmpty(refreshed.NewRefreshToken)
                     ? refreshToken
                     : refreshed.NewRefreshToken!;
-                await _tokenDao.UpdateAfterRefreshAsync(sessionId, effectiveRefreshToken, refreshed.AccessExpiresAtUtc, ct);
+                await _tokenDao.UpdateAfterRefreshAsync(sessionId, effectiveRefresh, refreshed.AccessExpiresAtUtc, ct);
             }
 
-            // 3) Try cache for this session/pageToken
-            string? cachedJson = await _playlistCacheDao.GetPageJsonAsync(sessionId, pageToken, nowUtc, ct);
+            // 3) Cache lookup (session + normalized page token)
+            string? cachedJson = await _playlistCacheDao.GetPageJsonAsync(sessionId, normalizedPageToken, nowUtc, ct);
             if (!string.IsNullOrEmpty(cachedJson))
             {
-                PlaylistPageDto cachedPage = JsonSerializer.Deserialize<PlaylistPageDto>(cachedJson)
-                                             ?? new PlaylistPageDto();
-                return cachedPage;
+                PlaylistPageDto? cachedPage = JsonSerializer.Deserialize<PlaylistPageDto>(cachedJson);
+                return cachedPage ?? new PlaylistPageDto();
             }
 
-            // 4) Cache miss => call Spotify
-            PlaylistPageDto livePage = await _spotifyApiHelper.GetPlaylistsAsync(accessToken!, pageToken, ct);
+            // 4) Cache miss → call Spotify (Spotify receives the original pageToken, not normalized)
+            PlaylistPageDto livePage = await _spotifyApiHelper.GetPlaylistsAsync(accessToken!, normalizedPageToken, ct);
 
-            // 5) Persist page with TTL
+            // 5) Persist page with TTL (keyed by normalized token)
             int ttlMinutes = _config.GetPlaylistCacheTtlMinutes();
             DateTime expiresAtUtc = nowUtc.AddMinutes(ttlMinutes);
             string rawJson = JsonSerializer.Serialize(livePage);
@@ -99,11 +99,12 @@ namespace API.Managers
             await _playlistCacheDao.UpsertPageAsync(
                 sessionId,
                 providerUserId,
-                pageToken,
+                normalizedPageToken,
                 rawJson,
                 expiresAtUtc,
                 nowUtc,
-                ct);
+                ct
+            );
 
             return livePage;
         }

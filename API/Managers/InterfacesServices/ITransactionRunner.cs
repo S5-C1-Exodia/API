@@ -19,5 +19,14 @@ namespace API.Managers.InterfacesServices
         /// A <see cref="Task"/> representing the asynchronous execution of the transactional work.
         /// </returns>
         Task RunInTransaction(Func<MySqlConnection, MySqlTransaction, Task> work);
+        
+        /// <summary>
+        /// Runs the given work inside a transaction, with cancellation support.
+        /// </summary>
+        /// <param name="work">The work to be executed within the transaction.</param>
+        /// <param name="ct">A cancellation token to observe while waiting for the task to complete.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task RunAsync(Func<MySqlConnection, MySqlTransaction, Task> work, CancellationToken ct = default);
+
     }
 }
