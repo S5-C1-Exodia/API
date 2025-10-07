@@ -2,6 +2,7 @@
 using API.DTO;
 using API.Errors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 
 namespace API.Controllers;
 
@@ -60,13 +61,19 @@ public class SpotifyController : ControllerBase
     /// <exception cref="ArgumentException">Thrown if code or state is null or empty.</exception>
     /// <exception cref="InvalidStateException">Thrown if the state is unknown or expired.</exception>
     /// <exception cref="TokenExchangeFailedException">Thrown if token exchange fails.</exception>
-    [HttpPost("callback")]
+    [HttpGet("callback")]
     [ProducesResponseType(typeof(string), 200)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state, [FromQuery] string? deviceInfo)
+    public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state, [FromQuery] string device = "")
     {
-        var result = await _authManager.HandleCallbackAsync(code, state, deviceInfo);
-        return Ok(result);
+        // Récupère device info : priorité à l’en-tête X-Device-Info
+        string deviceInfo = device ?? string.Empty;
+        bool hasHeader = Request.Headers.TryGetValue("X-Device-Info", out StringValues headerValues);
+        if (hasHeader && !string.IsNullOrEmpty(headerValues.ToString()))
+            deviceInfo = headerValues.ToString();
+
+        string deeplink = await _authManager.HandleCallbackAsync(code, state, deviceInfo);
+        return Redirect(deeplink);
     }
 
     /// <summary>

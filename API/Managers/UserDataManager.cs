@@ -53,7 +53,7 @@ namespace API.Managers
             DateTime nowUtc = _clock.GetUtcNow();
 
             // Normalize page token for DB keys (first page = empty string; never NULL in DB).
-            string normalizedPageToken = pageToken ?? string.Empty;
+            string normalizedPageToken = pageToken ?? "1";
 
             // 1) Retrieve TokenSet for the session (401 if missing)
             TokenSet? tokenSet = await _tokenDao.GetBySessionAsync(sessionId);
