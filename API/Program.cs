@@ -118,6 +118,7 @@ builder.Services.AddSingleton<IErrorMapper, DefaultErrorMapper>();
 // Managers
 builder.Services.AddScoped<IAuthManager, AuthManager>();
 builder.Services.AddScoped<IUserDataManager, UserDataManager>();
+builder.Services.AddScoped<IPreferencesManager, PreferencesManager>();
 
 WebApplication app = builder.Build();
 
