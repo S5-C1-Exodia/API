@@ -269,14 +269,3 @@ python connexion.py
 * [.NET 8 Documentation](https://learn.microsoft.com/en-us/dotnet/)
 * [MySQL Documentation](https://dev.mysql.com/doc/)
 
-```
-
----
-
-💡 Prochaines étapes :
-
-1. Me donner ton **schéma d’architecture** (fichier/image) pour que je l’intègre dans la section “Architecture générale”.
-2. Choisir ta **licence** (MIT conseillé pour un projet scolaire open-source).
-3. Si tu veux, on peut ajouter quelques badges (techno, licence) en haut du README.
-
-Veux-tu que je te propose maintenant un **texte de licence MIT adapté à ton contexte pédagogique** ?
