@@ -1,5 +1,8 @@
 ﻿namespace API.Services;
 
+/// <summary>
+/// Manage token
+/// </summary>
 public interface ITokenService
 {
     /// <summary>
