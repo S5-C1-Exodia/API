@@ -74,22 +74,16 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
 
         return dto;
     }
-    
-    /// <summary>
-    /// Retrieves the list of tracks in a specific playlist from Spotify.
-    /// </summary>
-    /// <param name="accessToken">Valid Spotify access token.</param>
-    /// <param name="playlistId">Spotify playlist ID.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A DTO containing the playlist’s tracks.</returns>
-    public async Task<PlaylistTracksDTO> GetPlaylistTracks(string accessToken, string playlistId, CancellationToken ct = default)
+
+    /// <inheritdoc/>
+    public async Task<PlaylistTracksDTO> GetPlaylistTracks(string accessToken, string playlistId, int? offset, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(accessToken))
             throw new ArgumentException("accessToken cannot be null or empty.", nameof(accessToken));
         if (string.IsNullOrWhiteSpace(playlistId))
             throw new ArgumentException("playlistId cannot be null or empty.", nameof(playlistId));
 
-        string url = $"playlists/{playlistId}/tracks?limit={_config.GetSpotifyPlaylistsPageSize()}";
+        string url = $"playlists/{playlistId}/tracks?limit={_config.GetSpotifyPlaylistsPageSize()}&offset={offset}";
 
         using HttpRequestMessage req = new HttpRequestMessage(HttpMethod.Get, url);
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -133,6 +127,7 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
         {
             PlaylistId = playlistId,
             Limit = spotifyResponse.Limit,
+            Offset = spotifyResponse.Offset,
             Tracks = tracks
         };
     }

@@ -16,6 +16,17 @@ public class PlaylistTracksDTO
     public int Limit { get; set; }
     
     /// <summary>
+    /// Statement of a track
+    /// </summary>
+    public int Offset { get; set; }
+    
+    /// <summary>
+    /// 20 next tracks after the actual to generate 20 tracks at the last track
+    /// <remarks>Spotify don't give this key/value, it's a calculation</remarks>
+    /// </summary>
+    public int NextOffset { get; set; }
+    
+    /// <summary>
     /// List of tracks in the playlist
     /// <remarks>Contains the album and the artist of a track</remarks>
     /// </summary>

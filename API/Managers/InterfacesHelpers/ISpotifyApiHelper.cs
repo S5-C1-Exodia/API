@@ -16,13 +16,14 @@ namespace API.Managers.InterfacesHelpers
         Task<PlaylistPageDto> GetPlaylistsAsync(string accessToken, string? pageToken, CancellationToken ct = default);
 
         /// <summary>
-        /// Verify the access token, take the playlist ID, and it returns all items from playlist
+        /// Retrieves the list of tracks in a specific playlist from Spotify.
         /// </summary>
-        /// <param name="accessToken">valid access token</param>
-        /// <param name="playlistId">playlist ID</param>
-        /// <param name="ct">cancellation token</param>
-        /// <returns>Items from the playlist</returns>
-        public Task<PlaylistTracksDTO> GetPlaylistTracks(string accessToken, string playlistId,
+        /// <param name="accessToken">Valid Spotify access token.</param>
+        /// <param name="playlistId">Spotify playlist ID.</param>
+        /// <param name="offset">Index of the current track</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>A DTO containing the playlist’s tracks.</returns>
+        public Task<PlaylistTracksDTO> GetPlaylistTracks(string accessToken, string playlistId, int? offset,
             CancellationToken ct = default);
     }
 }

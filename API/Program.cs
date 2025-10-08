@@ -121,6 +121,8 @@ builder.Services.AddScoped<IAuthManager, AuthManager>();
 builder.Services.AddScoped<IUserDataManager, UserDataManager>();
 builder.Services.AddScoped<IPlaylistManager, PlaylistManager>();
 
+builder.Services.AddMemoryCache();
+
 WebApplication app = builder.Build();
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions {
@@ -138,6 +140,7 @@ app.UseHttpsRedirection();
 
 // Global error handling middleware
 app.UseMiddleware<API.Middleware.ErrorHandlingMiddleware>();
+
 
 app.UseRouting();
 app.UseCors("Default");
