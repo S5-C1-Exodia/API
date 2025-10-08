@@ -111,13 +111,13 @@ FROM TOKENSET
 WHERE SessionId = @sid
 LIMIT 1";
 
-        await using var conn = _factory.Create();
+        await using MySqlConnection conn = _factory.Create();
         await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
+        await using MySqlCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@sid", sessionId);
 
-        await using var reader = await cmd.ExecuteReaderAsync();
+        await using MySqlDataReader reader = await cmd.ExecuteReaderAsync();
         if (!reader.HasRows) return null;
 
         if (await reader.ReadAsync())

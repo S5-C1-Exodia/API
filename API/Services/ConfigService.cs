@@ -52,9 +52,7 @@ public class ConfigService : IConfigService
             throw new ArgumentException("spotifyPlaylistPageSize must be between 1 and 50.", nameof(spotifyPlaylistPageSize));
 
         if (spotifyCacheTtlMinutes <= 0)
-            // Log a warning if you have a logging mechanism
-            // e.g., _logger.LogWarning("spotifyCacheTtlMinutes is non-positive; defaulting to 60 minutes.");
-            spotifyCacheTtlMinutes = 60; // default value
+            throw new ArgumentException("spotifyCacheTtlMinutes must be positive.", nameof(spotifyCacheTtlMinutes));
         
         _spotifyBaseUrl = spotifyBaseUrl;
         _spotifyPlaylistPageSize = spotifyPlaylistPageSize;

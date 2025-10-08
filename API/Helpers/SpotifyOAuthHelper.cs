@@ -229,8 +229,6 @@ public class SpotifyOAuthHelper(
         );
     }
 
-
-    /// <inheritdoc />
     private string ReadString(JsonDocument doc, string property)
     {
         if (doc == null) return string.Empty;
@@ -238,8 +236,7 @@ public class SpotifyOAuthHelper(
         if (el.ValueKind == JsonValueKind.String) return el.GetString() ?? string.Empty;
         return el.ToString();
     }
-
-    /// <inheritdoc />
+    
     private int ReadInt(JsonDocument doc, string property, int defaultValue)
     {
         if (doc == null) return defaultValue;

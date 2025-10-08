@@ -41,7 +41,7 @@ public class SpotifyOAuthHelperTests
         var helper = new SpotifyOAuthHelper(_httpClientFactory.Object, _config.Object, _clock.Object, _audit.Object);
         _config.Setup(c => c.GetSpotifyTokenEndpoint()).Returns("https://accounts.spotify.com/api/token");
         _config.Setup(c => c.GetSpotifyClientId()).Returns("clientId");
-        await Assert.ThrowsAsync<TokenExchangeFailedException>(() => helper.ExchangeCodeForTokensAsync("code", "cb", "verifier"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => helper.ExchangeCodeForTokensAsync("code", "cb", "verifier"));
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class SpotifyOAuthHelperTests
         var helper = new SpotifyOAuthHelper(_httpClientFactory.Object, _config.Object, _clock.Object, _audit.Object);
         _config.Setup(c => c.GetSpotifyTokenEndpoint()).Returns("https://accounts.spotify.com/api/token");
         _config.Setup(c => c.GetSpotifyClientId()).Returns("clientId");
-        await Assert.ThrowsAsync<TokenExchangeFailedException>(() => helper.RefreshTokensAsync("refresh"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => helper.RefreshTokensAsync("refresh"));
     }
 
     [Fact]

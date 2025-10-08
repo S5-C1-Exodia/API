@@ -120,6 +120,7 @@ builder.Services.AddSingleton<IErrorMapper, DefaultErrorMapper>();
 builder.Services.AddScoped<IAuthManager, AuthManager>();
 builder.Services.AddScoped<IUserDataManager, UserDataManager>();
 builder.Services.AddScoped<IPlaylistManager, PlaylistManager>();
+builder.Services.AddScoped<IPreferencesManager, PreferencesManager>();
 
 builder.Services.AddMemoryCache();
 
