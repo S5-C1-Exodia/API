@@ -16,14 +16,9 @@ public class TrackDTO
     public string Name { get; set; }
     
     /// <summary>
-    /// Image for the track
-    /// </summary>
-    public string? ImageUrl { get; set; }
-    
-    /// <summary>
     /// Author of the track
     /// </summary>
-    public ArtistDTO Author { get; set; }
+    public List<ArtistDTO> Artists { get; set; }
     
     /// <summary>
     /// Album of the track

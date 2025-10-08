@@ -98,42 +98,41 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
         resp.EnsureSuccessStatusCode();
 
         await using var stream = await resp.Content.ReadAsStreamAsync(ct);
-        PlaylistTracksDTO? json = await JsonSerializer.DeserializeAsync<PlaylistTracksDTO>(
+        var spotifyResponse = await JsonSerializer.DeserializeAsync<PlaylistTracksResponse>(
             stream,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true },
             ct
         );
 
-        if (json is null)
+        if (spotifyResponse == null)
             throw new InvalidOperationException("Failed to deserialize Spotify playlist tracks response.");
 
-        List<TrackDTO> tracks = json.Tracks?
-            .Where(i => i.Id != null)
+        List<TrackDTO> tracks = spotifyResponse.Items
+            .Where(i => i.Track != null)
             .Select(i => new TrackDTO
             {
-                Id = i.Id ?? string.Empty,
-                Name = i.Name ?? string.Empty,
-                ImageUrl = i.Album?.ImageUrl?.FirstOrDefault().ToString(),
-                Author = i.Author != null
-                    ? new ArtistDTO
-                    {
-                        Id = i.Author.Id,
-                        Name = i.Author.Name
-                    }
-                    : null,
-                Album = (i.Album != null
+                Id = i.Track.Id ?? string.Empty,
+                Name = i.Track.Name ?? string.Empty,
+                Artists = i.Track.Artists?.Select(a => new ArtistDTO
+                {
+                    Id = a.Id,
+                    Name = a.Name
+                }).ToList() ?? new List<ArtistDTO>(),
+                Album = i.Track.Album != null
                     ? new AlbumDTO
                     {
-                        Id = i.Album.Id,
-                        ImageUrl = i.Album.ImageUrl?.FirstOrDefault().ToString() ?? string.Empty,
+                        Id = i.Track.Album.Id,
+                        Images = i.Track.Album.Images?
+                            .Select(img => new ImageDTO { Url = img.Url })
+                            .ToList() ?? new List<ImageDTO>()
                     }
-                    : null)!
-            }).ToList() ?? [];
+                    : null
+            }).ToList();
 
         return new PlaylistTracksDTO
         {
             PlaylistId = playlistId,
-            Limit = json.Limit,
+            Limit = spotifyResponse.Limit,
             Tracks = tracks
         };
     }

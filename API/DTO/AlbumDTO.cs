@@ -13,5 +13,5 @@ public class AlbumDTO
     /// <summary>
     /// URL to the image
     /// </summary>
-    public string ImageUrl { get; set; }
+    public List<ImageDTO> Images { get; set; }
 }
