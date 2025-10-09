@@ -65,7 +65,7 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
                     Name = i.Name ?? string.Empty,
                     ImageUrl = i.Images?.FirstOrDefault()?.Url,
                     Owner = i.Owner?.DisplayName ?? i.Owner?.Id,
-                    TrackCount = i.Tracks?.Total,
+                    TrackCount = i.Tracks?.Count,
                     Selected = false
                 }
             ).ToList(),
@@ -76,7 +76,7 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
     }
 
     /// <inheritdoc/>
-    public async Task<PlaylistTracksDTO> GetPlaylistTracks(string accessToken, string playlistId, int? offset, CancellationToken ct = default)
+    public async Task<SpotifyPlaylistItem> GetPlaylistTracks(string accessToken, string playlistId, int? offset, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(accessToken))
             throw new ArgumentException("accessToken cannot be null or empty.", nameof(accessToken));
@@ -101,9 +101,9 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
         if (spotifyResponse == null)
             throw new InvalidOperationException("Failed to deserialize Spotify playlist tracks response.");
 
-        List<TrackDTO> tracks = spotifyResponse.Items
+        List<SpotifyTrack> tracks = spotifyResponse.Items
             .Where(i => i.Track != null)
-            .Select(i => new TrackDTO
+            .Select(i => new SpotifyTrack
             {
                 Id = i.Track.Id ?? string.Empty,
                 Name = i.Track.Name ?? string.Empty,
@@ -117,15 +117,15 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
                     {
                         Id = i.Track.Album.Id,
                         Images = i.Track.Album.Images?
-                            .Select(img => new ImageDTO { Url = img.Url })
-                            .ToList() ?? new List<ImageDTO>()
+                            .Select(img => new SpotifyImage() { Url = img.Url })
+                            .ToList() ?? new List<SpotifyImage>()
                     }
-                    : null
+                    : throw new NullReferenceException("None album for this track")
             }).ToList();
 
-        return new PlaylistTracksDTO
+        return new SpotifyPlaylistItem()
         {
-            PlaylistId = playlistId,
+            Id = playlistId,
             Limit = spotifyResponse.Limit,
             Offset = spotifyResponse.Offset,
             Tracks = tracks

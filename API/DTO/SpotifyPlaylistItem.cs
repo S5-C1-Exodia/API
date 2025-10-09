@@ -16,6 +16,22 @@ public sealed class SpotifyPlaylistItem
     public string? Name { get; set; }
 
     /// <summary>
+    /// Limit of track imported
+    /// </summary>
+    public int? Limit { get; set; }
+
+    /// <summary>
+    /// Statement of a track
+    /// </summary>
+    public int? Offset { get; set; }
+
+    /// <summary>
+    /// 20 next tracks after the actual to generate 20 tracks at the last track
+    /// <remarks>Spotify don't give this key/value, it's a calculation</remarks>
+    /// </summary>
+    public int? NextOffset { get; set; }
+
+    /// <summary>
     /// Gets or sets the image of the playlist.
     /// </summary>
     public SpotifyImage[]? Images { get; set; }
@@ -26,7 +42,12 @@ public sealed class SpotifyPlaylistItem
     public SpotifyOwner? Owner { get; set; }
 
     /// <summary>
-    /// Gets or sets the tracks information of the playlist.
+    /// Gets or sets tracks information of the playlist.
     /// </summary>
-    public SpotifyTracks? Tracks { get; set; }
+    public List<SpotifyTrack?> Tracks { get; set; }
+
+    /// <summary>
+    /// Tracks number in a playlist
+    /// </summary>
+    public SpotifyTracks TracksNumber { get; set; }
 }
