@@ -5,7 +5,7 @@ import requests
 
 
 def main():
-    base_url = "https://df4501fd7f3a.ngrok-free.app"
+    base_url = "https://46d4eca93234.ngrok-free.app"
     verify_tls = False
 
     scopes = [

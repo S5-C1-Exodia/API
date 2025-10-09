@@ -94,6 +94,7 @@ builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<ITokenDenyListService, TokenDenyListService>();
 builder.Services.AddScoped<IHashService, HashService>();
 builder.Services.AddScoped<ITransactionRunner, MySqlTransactionRunner>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 
 // Helpers
@@ -118,6 +119,10 @@ builder.Services.AddSingleton<IErrorMapper, DefaultErrorMapper>();
 // Managers
 builder.Services.AddScoped<IAuthManager, AuthManager>();
 builder.Services.AddScoped<IUserDataManager, UserDataManager>();
+builder.Services.AddScoped<IPlaylistManager, PlaylistManager>();
+builder.Services.AddScoped<IPreferencesManager, PreferencesManager>();
+
+builder.Services.AddMemoryCache();
 
 WebApplication app = builder.Build();
 
@@ -136,6 +141,7 @@ app.UseHttpsRedirection();
 
 // Global error handling middleware
 app.UseMiddleware<API.Middleware.ErrorHandlingMiddleware>();
+
 
 app.UseRouting();
 app.UseCors("Default");

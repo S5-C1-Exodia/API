@@ -60,7 +60,7 @@ public class AuthManager(
         DateTime now = _clock.GetUtcNow();
         DateTime exp = now.AddMinutes(_config.GetPkceTtlMinutes());
 
-        var entry = new PkceEntry(state, codeVerifier, codeChallenge, exp);
+        PkceEntry entry = new PkceEntry(state, codeVerifier, codeChallenge, exp);
         await _pkceDao.SaveAsync(entry);
 
         string url = _urlBuilder.BuildAuthorizeUrl(
@@ -81,7 +81,7 @@ public class AuthManager(
         if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("code cannot be null or empty.", nameof(code));
         if (string.IsNullOrWhiteSpace(state)) throw new ArgumentException("state cannot be null or empty.", nameof(state));
 
-        var entry = await _pkceDao.GetAsync(state) ?? throw new InvalidStateException("Unknown state.");
+        PkceEntry entry = await _pkceDao.GetAsync(state) ?? throw new InvalidStateException("Unknown state.");
         DateTime now = _clock.GetUtcNow();
         if (entry.IsExpired(now))
         {

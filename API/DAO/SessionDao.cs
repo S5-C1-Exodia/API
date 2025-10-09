@@ -110,9 +110,9 @@ public class SessionDao(ISqlConnectionFactory factory) : ISessionDao
 
         const string sql = @"DELETE FROM APPSESSION WHERE SessionId = @sid";
 
-        await using var conn = _factory.Create();
+        await using MySqlConnection conn = _factory.Create();
         await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
+        await using MySqlCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("@sid", sessionId);
         await cmd.ExecuteNonQueryAsync();
@@ -121,7 +121,7 @@ public class SessionDao(ISqlConnectionFactory factory) : ISessionDao
     /// <inheritdoc />
     public async Task DeleteAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx)
     {
-        await using var cmd = new MySqlCommand("DELETE FROM APPSESSION WHERE SessionId = @sessionId", conn, tx);
+        await using MySqlCommand cmd = new MySqlCommand("DELETE FROM APPSESSION WHERE SessionId = @sessionId", conn, tx);
         cmd.Parameters.AddWithValue("@sessionId", sessionId);
         await cmd.ExecuteNonQueryAsync();
     }
