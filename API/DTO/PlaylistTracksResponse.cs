@@ -1,14 +1,11 @@
 ﻿namespace API.DTO;
 
-/// <summary>
-/// Spotify web API response for /playlists/playlist_id/tracks
-/// </summary>
 public class PlaylistTracksResponse
 {
     /// <summary>
     /// List of tracks json
     /// </summary>
-    public List<SpotifyTrackItem> Items { get; set; }
+    public List<TrackItemDTO> Items { get; set; }
     
     /// <summary>
     /// Tracks limit to get

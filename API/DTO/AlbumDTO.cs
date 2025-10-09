@@ -12,7 +12,6 @@ public class AlbumDTO
     
     /// <summary>
     /// URL to the image
-    /// <remarks>Spotify gives a several images url</remarks>
     /// </summary>
-    public List<SpotifyImage> Images { get; set; }
+    public List<ImageDTO> Images { get; set; }
 }
