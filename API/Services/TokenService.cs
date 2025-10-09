@@ -8,6 +8,9 @@ using Api.Models;
 
 namespace API.Services;
 
+/// <summary>
+/// Operations from ITokenService
+/// </summary>
 public class TokenService : ITokenService
 {
     private readonly ITokenDao _tokenDao;
@@ -15,6 +18,14 @@ public class TokenService : ITokenService
     private readonly ISpotifyOAuthHelper _spotifyOAuthHelper;
     private readonly IClockService _clock;
 
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    /// <param name="tokenDao">token provider</param>
+    /// <param name="accessTokenDao">access token provider</param>
+    /// <param name="spotifyOAuthHelper">refresh the token</param>
+    /// <param name="clock">current time UTC</param>
+    /// <exception cref="ArgumentNullException">if any parameter is null, this object can't run well</exception>
     public TokenService(
         ITokenDao tokenDao,
         IAccessTokenDao accessTokenDao,

@@ -3,7 +3,7 @@
 /// <summary>
 /// Representing a track
 /// </summary>
-public class TrackDTO
+public class SpotifyTrack
 {
     /// <summary>
     /// Track ID
@@ -24,4 +24,5 @@ public class TrackDTO
     /// Album of the track
     /// </summary>
     public AlbumDTO Album { get; set; }
+    
 }
