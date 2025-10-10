@@ -5,7 +5,7 @@ import requests
 
 
 def main():
-    base_url = "https://46d4eca93234.ngrok-free.app"
+    base_url = "baseUrl"  # ex: "https://api.swipez.io"
     verify_tls = False
 
     scopes = [

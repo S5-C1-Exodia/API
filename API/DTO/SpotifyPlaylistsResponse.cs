@@ -39,5 +39,5 @@ public sealed class SpotifyPlaylistsResponse
     /// <summary>
     /// The array of playlist items.
     /// </summary>
-    public SpotifyPlaylistItem[] Items { get; set; } = [];
+    public List<SpotifyPlaylistItem> Items { get; set; } = [];
 }

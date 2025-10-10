@@ -65,7 +65,7 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
                     Name = i.Name ?? string.Empty,
                     ImageUrl = i.Images?.FirstOrDefault()?.Url,
                     Owner = i.Owner?.DisplayName ?? i.Owner?.Id,
-                    TrackCount = i.Tracks?.Total,
+                    TrackCount = i.Tracks.Total ?? 0,
                     Selected = false
                 }
             ).ToList(),
@@ -73,5 +73,62 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
         };
 
         return dto;
+    }
+
+    /// <inheritdoc/>
+    public async Task<PlaylistTracksDTO> GetPlaylistTracks(string accessToken, string playlistId, int? offset, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(accessToken))
+            throw new ArgumentException("accessToken cannot be null or empty.", nameof(accessToken));
+        if (string.IsNullOrWhiteSpace(playlistId))
+            throw new ArgumentException("playlistId cannot be null or empty.", nameof(playlistId));
+
+        string url = $"playlists/{playlistId}/tracks?limit={_config.GetSpotifyPlaylistsPageSize()}&offset={offset}";
+
+        using HttpRequestMessage req = new HttpRequestMessage(HttpMethod.Get, url);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using HttpResponseMessage resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+        resp.EnsureSuccessStatusCode();
+
+        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        var spotifyResponse = await JsonSerializer.DeserializeAsync<PlaylistTracksResponse>(
+            stream,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true },
+            ct
+        );
+
+        if (spotifyResponse == null)
+            throw new InvalidOperationException("Failed to deserialize Spotify playlist tracks response.");
+
+        List<SpotifyTrack> tracks = spotifyResponse.Items
+            .Where(i => i.Track != null)
+            .Select(i => new SpotifyTrack
+            {
+                Id = i.Track.Id ?? string.Empty,
+                Name = i.Track.Name ?? string.Empty,
+                Artists = i.Track.Artists?.Select(a => new ArtistDTO
+                {
+                    Id = a.Id,
+                    Name = a.Name
+                }).ToList() ?? new List<ArtistDTO>(),
+                Album = i.Track.Album != null
+                    ? new AlbumDTO
+                    {
+                        Id = i.Track.Album.Id,
+                        Images = i.Track.Album.Images?
+                            .Select(img => new SpotifyImage() { Url = img.Url })
+                            .ToList() ?? new List<SpotifyImage>()
+                    }
+                    : throw new NullReferenceException("None album for this track")
+            }).ToList();
+
+        return new PlaylistTracksDTO()
+        {
+            PlaylistId = playlistId,
+            Limit = spotifyResponse.Limit,
+            Offset = spotifyResponse.Offset,
+            Tracks = tracks
+        };
     }
 }
