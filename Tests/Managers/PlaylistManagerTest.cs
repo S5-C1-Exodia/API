@@ -31,9 +31,9 @@ namespace Tests.Managers
             const string playlistId = "playlistABC";
             const string accessToken = "tokenXYZ";
 
-            var expectedDto = new SpotifyPlaylistItem()
+            var expectedDto = new PlaylistTracksDTO()
             {
-                Id = playlistId,
+                PlaylistId = playlistId,
                 Limit = 50
             };
 
@@ -50,7 +50,7 @@ namespace Tests.Managers
 
             // Assert
             result.Should().NotBeNull();
-            result.Id.Should().Be(playlistId);
+            result.PlaylistId.Should().Be(playlistId);
             result.Offset.Should().Be(0);
             result.NextOffset.Should().Be(50);
             result.Limit.Should().Be(50);
@@ -72,7 +72,7 @@ namespace Tests.Managers
             const string accessToken = "tokenXYZ";
             const int customOffset = 100;
 
-            var expectedDto = new SpotifyPlaylistItem() { Id = playlistId, Limit = 25 };
+            var expectedDto = new PlaylistTracksDTO() { PlaylistId = playlistId, Limit = 25 };
 
             _tokenServiceMock
                 .Setup(t => t.GetAccessTokenAsync(sessionId, It.IsAny<CancellationToken>()))
@@ -101,7 +101,7 @@ namespace Tests.Managers
             int cachedOffset = 200;
             _memoryCache.Set($"playlist_offset_{sessionId}_{playlistId}", cachedOffset);
 
-            var expectedDto = new SpotifyPlaylistItem() { Id = playlistId, Limit = 10 };
+            var expectedDto = new PlaylistTracksDTO() { PlaylistId = playlistId, Limit = 10 };
 
             _tokenServiceMock
                 .Setup(t => t.GetAccessTokenAsync(sessionId, It.IsAny<CancellationToken>()))

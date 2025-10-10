@@ -44,7 +44,7 @@ public class SpotifyApiHelperTests
                     Name = "Playlist 1",
                     Images = new[] { new SpotifyImage { Url = "img1" } },
                     Owner = new SpotifyOwner { DisplayName = "owner1" },
-                    TracksNumber = new SpotifyTracks
+                    Tracks = new SpotifyTracksInfo
                     {
                         Total = 10
                     }
@@ -165,7 +165,7 @@ public class SpotifyApiHelperTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(playlistId, result.Id);
+        Assert.Equal(playlistId, result.PlaylistId);
         Assert.Equal(20, result.Limit);
         Assert.Equal(0, result.Offset);
         Assert.Single(result.Tracks);
@@ -292,7 +292,11 @@ public class SpotifyApiHelperTests
                         Id = null,
                         Name = null,
                         Artists = null,
-                        Album = null
+                        Album = new AlbumDTO // Album DOIT être présent
+                        {
+                            Id = null,
+                            Images = null
+                        }
                     }
                 }
             ]
@@ -327,7 +331,8 @@ public class SpotifyApiHelperTests
         Assert.Equal(string.Empty, result.Tracks[0].Id);
         Assert.Equal(string.Empty, result.Tracks[0].Name);
         Assert.Empty(result.Tracks[0].Artists);
-        Assert.Null(result.Tracks[0].Album);
+        Assert.NotNull(result.Tracks[0].Album);
+        Assert.Empty(result.Tracks[0].Album.Images);
     }
 
     [Fact]
@@ -350,8 +355,12 @@ public class SpotifyApiHelperTests
                     {
                         Id = "track1",
                         Name = "Valid Track",
-                        Artists = [],
-                        Album = null
+                        Artists = new List<ArtistDTO>(),
+                        Album = new AlbumDTO // Album ne doit PAS être null
+                        {
+                            Id = "album1",
+                            Images = new List<SpotifyImage>()
+                        }
                     }
                 }
             ]
@@ -384,6 +393,8 @@ public class SpotifyApiHelperTests
         Assert.NotNull(result);
         Assert.Single(result.Tracks);
         Assert.Equal("track1", result.Tracks[0].Id);
+        Assert.NotNull(result.Tracks[0].Album); // L'album doit être présent
+        Assert.Equal("album1", result.Tracks[0].Album.Id);
     }
 
     [Fact]
