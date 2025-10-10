@@ -30,7 +30,7 @@ public class PlaylistManager : IPlaylistManager
     }
 
     /// <inheritdoc cref="IPlaylistManager.GetTracksByPlaylist"/>
-    public async Task<SpotifyPlaylistItem> GetTracksByPlaylist(
+    public async Task<PlaylistTracksDTO> GetTracksByPlaylist(
         string sessionId, 
         string playlistId, 
         int? offset, 
@@ -39,7 +39,7 @@ public class PlaylistManager : IPlaylistManager
         string cacheKey = $"playlist_offset_{sessionId}_{playlistId}";
         int currentOffset = offset ?? _memoryCache.Get<int?>(cacheKey) ?? 0;
         string accessToken = await _tokenService.GetAccessTokenAsync(sessionId, ct);
-        SpotifyPlaylistItem res = await _spotifyApiHelper.GetPlaylistTracks(accessToken, playlistId, currentOffset, ct);
+        PlaylistTracksDTO res = await _spotifyApiHelper.GetPlaylistTracks(accessToken, playlistId, currentOffset, ct);
 
         int? nextOffset = currentOffset + res.Limit;
 

@@ -42,12 +42,7 @@ public sealed class SpotifyPlaylistItem
     public SpotifyOwner? Owner { get; set; }
 
     /// <summary>
-    /// Gets or sets tracks information of the playlist.
+    /// Tracks information
     /// </summary>
-    public List<SpotifyTrack?> Tracks { get; set; }
-
-    /// <summary>
-    /// Tracks number in a playlist
-    /// </summary>
-    public SpotifyTracks TracksNumber { get; set; }
+    public SpotifyTracksInfo Tracks { get; set; }
 }

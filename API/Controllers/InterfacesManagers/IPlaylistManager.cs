@@ -15,7 +15,7 @@ public interface IPlaylistManager
     /// <param name="offset">current item (track) to read at start</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Playlist and its items</returns>
-    public Task<SpotifyPlaylistItem> GetTracksByPlaylist(string sessionId, string playlistId, int? offset,
+    public Task<PlaylistTracksDTO> GetTracksByPlaylist(string sessionId, string playlistId, int? offset,
         CancellationToken ct = default);
 
 }
