@@ -130,17 +130,16 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
 
-// Swagger en Dev
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+
+app.UseSwagger(); 
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
 // Global error handling middleware
 app.UseMiddleware<API.Middleware.ErrorHandlingMiddleware>();
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 
 app.UseRouting();

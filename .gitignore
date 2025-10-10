@@ -115,3 +115,5 @@ API/.env
 API/docker-compose.yml
 API/Dockerfile
 API/Caddyfile
+docker-compose.yml
+Caddyfile

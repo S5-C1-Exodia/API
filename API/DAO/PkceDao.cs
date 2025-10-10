@@ -31,7 +31,7 @@ public class PkceDao : IPkceDao
             throw new ArgumentNullException(nameof(entry));
 
         const string sql = @"
-    INSERT INTO PKCEENTRY (State, CodeVerifier, CodeChallenge, ExpiresAt)
+    INSERT INTO pkceentry (State, CodeVerifier, CodeChallenge, ExpiresAt)
     VALUES (@state, @verifier, @challenge, @exp)";
 
         MySqlConnection conn = _factory.Create();
@@ -64,7 +64,7 @@ public class PkceDao : IPkceDao
 
         const string sql = @"
     SELECT State, CodeVerifier, CodeChallenge, ExpiresAt
-    FROM PKCEENTRY
+    FROM pkceentry
     WHERE State = @state
     LIMIT 1";
 
@@ -114,7 +114,7 @@ public class PkceDao : IPkceDao
             throw new ArgumentException("state cannot be null or empty.", nameof(state));
         }
 
-        const string sql = @"DELETE FROM PKCEENTRY WHERE State = @state";
+        const string sql = @"DELETE FROM pkceentry WHERE State = @state";
 
         MySqlConnection conn = _factory.Create();
         try

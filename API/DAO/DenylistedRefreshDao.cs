@@ -30,7 +30,7 @@ public class DenylistedRefreshDao : IDenylistedRefreshDao
 
         const string sql = @"
         SELECT 1
-        FROM DENYLISTEDREFRESH
+        FROM denylistedrefresh
         WHERE RefreshHash = @h AND ExpiresAt > @now
         LIMIT 1;";
 
@@ -52,7 +52,7 @@ public class DenylistedRefreshDao : IDenylistedRefreshDao
             throw new ArgumentException("refreshHash cannot be null or empty.", nameof(refreshHash));
 
         const string sql = @"
-        INSERT INTO DENYLISTEDREFRESH(RefreshHash, Reason, AddedAt, ExpiresAt)
+        INSERT INTO denylistedrefresh(RefreshHash, Reason, AddedAt, ExpiresAt)
         VALUES (@h, @r, @added, @exp)
         ON DUPLICATE KEY UPDATE
             Reason = VALUES(Reason),

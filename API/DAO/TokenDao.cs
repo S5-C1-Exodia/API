@@ -30,7 +30,7 @@ public class TokenDao(ISqlConnectionFactory factory, IClockService clock) : ITok
         DateTime now = _clock.GetUtcNow();
 
         const string sql = @"
-INSERT INTO TOKENSET (Provider, ProviderUserId, RefreshTokenEnc, Scope, AccessExpiresAt, UpdatedAt)
+INSERT INTO tokenset (Provider, ProviderUserId, RefreshTokenEnc, Scope, AccessExpiresAt, UpdatedAt)
 VALUES (@provider, @puid, @refresh, @scope, @accessExp, @updatedAt);
 SELECT LAST_INSERT_ID();";
 
@@ -74,7 +74,7 @@ SELECT LAST_INSERT_ID();";
         DateTime now = _clock.GetUtcNow();
 
         const string sql = @"
-UPDATE TOKENSET
+UPDATE tokenset
 SET SessionId = @sid, UpdatedAt = @updatedAt
 WHERE TokenSetId = @id";
 
@@ -107,7 +107,7 @@ WHERE TokenSetId = @id";
 
         const string sql = @"
 SELECT TokenSetId, Provider, ProviderUserId, RefreshTokenEnc, Scope, AccessExpiresAt, UpdatedAt, SessionId
-FROM TOKENSET
+FROM tokenset
 WHERE SessionId = @sid
 LIMIT 1";
 

@@ -21,7 +21,7 @@ public class SessionDao(ISqlConnectionFactory factory) : ISessionDao
             throw new ArgumentNullException(nameof(session));
 
         const string sql = @"
-            INSERT INTO APPSESSION (SessionId, DeviceInfo, CreatedAt, LastSeenAt, ExpiresAt)
+            INSERT INTO appsession (SessionId, DeviceInfo, CreatedAt, LastSeenAt, ExpiresAt)
             VALUES (@sid, @device, @created, @lastseen, @expires)";
 
         MySqlConnection conn = _factory.Create();
@@ -56,7 +56,7 @@ public class SessionDao(ISqlConnectionFactory factory) : ISessionDao
 
         const string sql = @"
             SELECT SessionId, DeviceInfo, CreatedAt, LastSeenAt, ExpiresAt
-            FROM APPSESSION
+            FROM appsession
             WHERE SessionId = @sid
             LIMIT 1";
 
@@ -108,7 +108,7 @@ public class SessionDao(ISqlConnectionFactory factory) : ISessionDao
         if (string.IsNullOrWhiteSpace(sessionId))
             throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
 
-        const string sql = @"DELETE FROM APPSESSION WHERE SessionId = @sid";
+        const string sql = @"DELETE FROM appsession WHERE SessionId = @sid";
 
         await using MySqlConnection conn = _factory.Create();
         await conn.OpenAsync();
@@ -121,7 +121,7 @@ public class SessionDao(ISqlConnectionFactory factory) : ISessionDao
     /// <inheritdoc />
     public async Task DeleteAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx)
     {
-        await using MySqlCommand cmd = new MySqlCommand("DELETE FROM APPSESSION WHERE SessionId = @sessionId", conn, tx);
+        await using MySqlCommand cmd = new MySqlCommand("DELETE FROM appsession WHERE SessionId = @sessionId", conn, tx);
         cmd.Parameters.AddWithValue("@sessionId", sessionId);
         await cmd.ExecuteNonQueryAsync();
     }
