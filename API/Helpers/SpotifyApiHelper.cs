@@ -65,7 +65,7 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
                     Name = i.Name ?? string.Empty,
                     ImageUrl = i.Images?.FirstOrDefault()?.Url,
                     Owner = i.Owner?.DisplayName ?? i.Owner?.Id,
-                    TrackCount = i.Tracks?.Count,
+                    TrackCount = i.Tracks.Total ?? 0,
                     Selected = false
                 }
             ).ToList(),
@@ -76,7 +76,7 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
     }
 
     /// <inheritdoc/>
-    public async Task<SpotifyPlaylistItem> GetPlaylistTracks(string accessToken, string playlistId, int? offset, CancellationToken ct = default)
+    public async Task<PlaylistTracksDTO> GetPlaylistTracks(string accessToken, string playlistId, int? offset, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(accessToken))
             throw new ArgumentException("accessToken cannot be null or empty.", nameof(accessToken));
@@ -123,9 +123,9 @@ public class SpotifyApiHelper(HttpClient http, IConfigService config) : ISpotify
                     : throw new NullReferenceException("None album for this track")
             }).ToList();
 
-        return new SpotifyPlaylistItem()
+        return new PlaylistTracksDTO()
         {
-            Id = playlistId,
+            PlaylistId = playlistId,
             Limit = spotifyResponse.Limit,
             Offset = spotifyResponse.Offset,
             Tracks = tracks

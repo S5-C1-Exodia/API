@@ -37,7 +37,7 @@ namespace API.Controllers
         /// <response code="401">The app has exceeded its rate limits</response>
         /// <returns>The playlist ID, 20 tracks</returns>
         [HttpGet("/playlists/{playlistId}/tracks")]
-        [ProducesResponseType(typeof(SpotifyPlaylistItem), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PlaylistTracksDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -47,7 +47,7 @@ namespace API.Controllers
             [FromQuery] int? offset,
             CancellationToken ct)
         {
-            SpotifyPlaylistItem result = await _playlistManager.GetTracksByPlaylist(sessionId, playlistId, offset, ct);
+            PlaylistTracksDTO result = await _playlistManager.GetTracksByPlaylist(sessionId, playlistId, offset, ct);
             return Ok(result);
         }
     }

@@ -23,7 +23,7 @@ namespace API.Managers.InterfacesHelpers
         /// <param name="offset">Index of the current track</param>
         /// <param name="ct">Cancellation token.</param>
         /// <returns>A DTO containing the playlist’s tracks.</returns>
-        public Task<SpotifyPlaylistItem> GetPlaylistTracks(string accessToken, string playlistId, int? offset,
+        public Task<PlaylistTracksDTO> GetPlaylistTracks(string accessToken, string playlistId, int? offset,
             CancellationToken ct = default);
     }
 }
