@@ -109,8 +109,6 @@ _ReSharper*/
 *.ldf
 *.mdf
 
-## Local config
-launchSettings.json
 API/appsettings.json
 API/Caddyfile
 API/.env
