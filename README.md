@@ -171,6 +171,7 @@ Réponse :
 | ------- | ------------------------------------------ | ------------------------------------------------------- |
 | GET     | `/api/spotify/playlists`                   | Récupère les playlists (pagination via `X-Page-Token`). |
 | GET     | `/api/spotify/playlist-preferences`        | Liste les playlists sélectionnées.                      |
+| GET     | `/api/playlists/{playlist_id}/tracks`      | Liste les playlists sélectionnées.                      |
 | PUT     | `/api/spotify/playlist-preferences`        | Remplace complètement la sélection de playlists.        |
 | PATCH   | `/api/spotify/playlist-preferences/add`    | Ajoute des playlists à la sélection.                    |
 | PATCH   | `/api/spotify/playlist-preferences/remove` | Retire des playlists de la sélection.                   |
