@@ -1,4 +1,4 @@
-﻿using MySqlConnector;
+﻿using System.Data.Common;
 
 namespace Api.Managers.InterfacesDao;
 
@@ -7,17 +7,12 @@ namespace Api.Managers.InterfacesDao;
 /// </summary>
 public interface IUserProfileCacheDao
 {
-    /// <summary>
-    /// Deletes the user profile cache for a given provider user asynchronously.
-    /// </summary>
-    /// <param name="providerUserId">The provider user identifier.</param>
-    Task DeleteByProviderUserAsync(string providerUserId);
 
     /// <summary>
     /// Deletes the user profile cache for a given provider user within a transaction asynchronously.
     /// </summary>
     /// <param name="providerUserId">The provider user identifier.</param>
-    /// <param name="conn">The MySQL connection.</param>
-    /// <param name="tx">The MySQL transaction.</param>
-    Task DeleteByProviderUserAsync(string providerUserId, MySqlConnection conn, MySqlTransaction tx);
+    /// <param name="conn">The database connection to use for the operation.</param>
+    /// <param name="tx">The database transaction to use for the operation.</param>
+    Task DeleteByProviderUserAsync(string providerUserId, DbConnection conn, DbTransaction tx);
 }

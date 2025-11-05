@@ -1,5 +1,5 @@
 ﻿using Api.Models;
-using MySqlConnector;
+using System.Data.Common;
 
 namespace Api.Managers.InterfacesDao;
 
@@ -17,16 +17,18 @@ public interface ITokenDao
     /// <param name="refreshToken">The refresh token.</param>
     /// <param name="scope">The granted scopes.</param>
     /// <param name="accessExpiresAt">The access token expiration date and time.</param>
+    /// <param name="ct">The cancellation token.</param>
     /// <returns>The ID of the saved token set.</returns>
     Task<long> SaveByStateAsync(string state, string provider, string providerUserId,
-        string refreshToken, string scope, DateTime accessExpiresAt);
+        string refreshToken, string scope, DateTime accessExpiresAt, CancellationToken ct = default);
 
     /// <summary>
     /// Attaches a token set to a session asynchronously.
     /// </summary>
     /// <param name="tokenSetId">The token set identifier.</param>
     /// <param name="sessionId">The session identifier.</param>
-    Task AttachToSessionAsync(long tokenSetId, string sessionId);
+    /// <param name="ct">The cancellation token.</param>
+    Task AttachToSessionAsync(long tokenSetId, string sessionId, CancellationToken ct = default);
 
     /// <summary>
     /// Gets the token set associated with a session asynchronously.
@@ -39,15 +41,16 @@ public interface ITokenDao
     /// Deletes the token set associated with a session asynchronously.
     /// </summary>
     /// <param name="sessionId">The session identifier.</param>
-    Task DeleteBySessionAsync(string sessionId);
+    /// <param name="ct">The cancellation token.</param>
+    Task DeleteBySessionAsync(string sessionId, CancellationToken ct = default);
 
     /// <summary>
     /// Deletes the token set associated with a session within a transaction asynchronously.
     /// </summary>
     /// <param name="sessionId">The session identifier.</param>
-    /// <param name="conn">The MySQL connection.</param>
-    /// <param name="tx">The MySQL transaction.</param>
-    Task DeleteBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx);
+    /// <param name="conn">The database connection.</param>
+    /// <param name="tx">The database transaction.</param>
+    Task DeleteBySessionAsync(string sessionId, DbConnection conn, DbTransaction tx);
 
     /// <summary>
     /// Asynchronously updates the token set after a refresh operation.

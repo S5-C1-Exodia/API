@@ -1,4 +1,4 @@
-﻿using MySqlConnector;
+﻿using System.Data.Common;
 
 namespace Api.Managers.InterfacesDao;
 
@@ -17,9 +17,9 @@ public interface IPlaylistCacheDao
     /// Deletes all playlist cache entries for a given provider user within a transaction asynchronously.
     /// </summary>
     /// <param name="providerUserId">The provider user identifier.</param>
-    /// <param name="conn">The MySQL connection.</param>
-    /// <param name="tx">The MySQL transaction.</param>
-    Task DeleteByProviderUserAsync(string providerUserId, MySqlConnection conn, MySqlTransaction tx);
+    /// <param name="conn">The database connection.</param>
+    /// <param name="tx">The database transaction.</param>
+    Task DeleteByProviderUserAsync(string providerUserId, DbConnection conn, DbTransaction tx);
 
     /// <summary>
     /// Deletes all playlist links for a given session asynchronously.
@@ -31,9 +31,9 @@ public interface IPlaylistCacheDao
     /// Deletes all playlist links for a given session within a transaction asynchronously.
     /// </summary>
     /// <param name="sessionId">The session identifier.</param>
-    /// <param name="conn">The MySQL connection.</param>
-    /// <param name="tx">The MySQL transaction.</param>
-    Task DeleteLinksBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx);
+    /// <param name="conn">The database connection.</param>
+    /// <param name="tx">The database transaction.</param>
+    Task DeleteLinksBySessionAsync(string sessionId, DbConnection conn, DbTransaction tx);
 
     /// <summary>
     /// Returns the cached page JSON for a given session and page token if it is still valid.
