@@ -1,6 +1,6 @@
-﻿using Api.Managers.InterfacesDao;
+﻿using System.Data.Common;
+using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
-using MySqlConnector;
 
 namespace API.DAO;
 
@@ -18,16 +18,21 @@ public class AccessTokenDao(ISqlConnectionFactory factory) : IAccessTokenDao
 
         const string sql = "delete from accesstoken where SessionId = @sid";
 
-        await using MySqlConnection conn = factory.Create();
-        await conn.OpenAsync();
-        await using MySqlCommand cmd = conn.CreateCommand();
+        var ct = CancellationToken.None;
+        await using DbConnection conn = await factory.CreateOpenAsync(ct);
+        await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@sid", sessionId);
-        await cmd.ExecuteNonQueryAsync();
+
+        var param = cmd.CreateParameter();
+        param.ParameterName = "@sid";
+        param.Value = sessionId;
+        cmd.Parameters.Add(param);
+
+        await cmd.ExecuteNonQueryAsync(ct);
     }
 
     /// <inheritdoc />
-    public async Task DeleteBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx)
+    public async Task DeleteBySessionAsync(string sessionId, DbConnection conn, DbTransaction tx)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
             throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
@@ -35,11 +40,16 @@ public class AccessTokenDao(ISqlConnectionFactory factory) : IAccessTokenDao
 
         const string sql = "delete from accesstoken where SessionId = @sid";
 
-        await using MySqlCommand cmd = conn.CreateCommand();
+        using var cmd = conn.CreateCommand();
         cmd.Transaction = tx;
         cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@sid", sessionId);
-        await cmd.ExecuteNonQueryAsync();
+
+        var param = cmd.CreateParameter();
+        param.ParameterName = "@sid";
+        param.Value = sessionId;
+        cmd.Parameters.Add(param);
+
+        await cmd.ExecuteNonQueryAsync(CancellationToken.None);
     }
 
     /// <inheritdoc />
@@ -49,31 +59,34 @@ public class AccessTokenDao(ISqlConnectionFactory factory) : IAccessTokenDao
             throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
 
         const string sql = @"
-select AccessTokenEnc
-from accesstoken
-where SessionId = @sid
-  and ExpiresAt > @now
-order by ExpiresAt desc
-limit 1;";
+        select AccessTokenEnc
+        from accesstoken
+        where SessionId = @sid
+          and ExpiresAt > @now
+        order by ExpiresAt desc
+        limit 1;";
 
-        MySqlConnection conn = factory.Create();
-        try
-        {
-            await conn.OpenAsync(ct);
-            MySqlCommand cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("@sid", sessionId);
-            cmd.Parameters.AddWithValue("@now", nowUtc);
+        await using DbConnection conn = await factory.CreateOpenAsync(ct);
+        string? result = null;
 
-            object? scalar = await cmd.ExecuteScalarAsync(ct);
-            if (scalar is null || scalar == DBNull.Value) return null;
-            return Convert.ToString(scalar);
-        }
-        finally
-        {
-            await conn.CloseAsync();
-            await conn.DisposeAsync();
-        }
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+
+        var pSid = cmd.CreateParameter();
+        pSid.ParameterName = "@sid";
+        pSid.Value = sessionId;
+        cmd.Parameters.Add(pSid);
+
+        var pNow = cmd.CreateParameter();
+        pNow.ParameterName = "@now";
+        pNow.Value = nowUtc;
+        cmd.Parameters.Add(pNow);
+
+        object? scalar = await cmd.ExecuteScalarAsync(ct);
+        if (!(scalar is null || scalar == DBNull.Value))
+            result = Convert.ToString(scalar);
+
+        return result;
     }
 
     /// <inheritdoc />
@@ -86,29 +99,38 @@ limit 1;";
             throw new ArgumentException("accessToken cannot be null or empty.", nameof(accessToken));
 
         const string sql = @"
-insert into accesstoken (SessionId, AccessTokenEnc, ExpiresAt, CreatedAt)
-values (@sid, @tok, @exp, @now)
-on duplicate key update
-  AccessTokenEnc = values(AccessTokenEnc),
-  ExpiresAt     = values(ExpiresAt),
-  CreatedAt     = values(CreatedAt);";
+        insert into accesstoken (SessionId, AccessTokenEnc, ExpiresAt, CreatedAt)
+        values (@sid, @tok, @exp, @now)
+        on duplicate key update
+          AccessTokenEnc = values(AccessTokenEnc),
+          ExpiresAt     = values(ExpiresAt),
+          CreatedAt     = values(CreatedAt);";
 
-        MySqlConnection conn = factory.Create();
-        try
-        {
-            await conn.OpenAsync(ct);
-            MySqlCommand cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("@sid", sessionId);
-            cmd.Parameters.AddWithValue("@tok", accessToken);
-            cmd.Parameters.AddWithValue("@exp", expiresAtUtc);
-            cmd.Parameters.AddWithValue("@now", nowUtc);
-            await cmd.ExecuteNonQueryAsync(ct);
-        }
-        finally
-        {
-            await conn.CloseAsync();
-            await conn.DisposeAsync();
-        }
+        await using DbConnection conn = await factory.CreateOpenAsync(ct);
+
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+
+        var pSid = cmd.CreateParameter();
+        pSid.ParameterName = "@sid";
+        pSid.Value = sessionId;
+        cmd.Parameters.Add(pSid);
+
+        var pTok = cmd.CreateParameter();
+        pTok.ParameterName = "@tok";
+        pTok.Value = accessToken;
+        cmd.Parameters.Add(pTok);
+
+        var pExp = cmd.CreateParameter();
+        pExp.ParameterName = "@exp";
+        pExp.Value = expiresAtUtc;
+        cmd.Parameters.Add(pExp);
+
+        var pNow = cmd.CreateParameter();
+        pNow.ParameterName = "@now";
+        pNow.Value = nowUtc;
+        cmd.Parameters.Add(pNow);
+
+        await cmd.ExecuteNonQueryAsync(ct);
     }
 }

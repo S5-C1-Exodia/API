@@ -1,12 +1,13 @@
 ﻿using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
 using Api.Models;
-using MySqlConnector;
+using System.Data.Common;
 
 namespace API.DAO;
 
 using System;
 using System.Data;
+using System.Threading;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -20,7 +21,7 @@ public class TokenDao(ISqlConnectionFactory factory, IClockService clock) : ITok
 
     /// <inheritdoc />
     public async Task<long> SaveByStateAsync(string state, string provider, string providerUserId,
-        string refreshTokenEnc, string scope, DateTime accessExpiresAt)
+        string refreshTokenEnc, string scope, DateTime accessExpiresAt, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(provider))
             throw new ArgumentException("provider cannot be null or empty.", nameof(provider));
@@ -30,40 +31,49 @@ public class TokenDao(ISqlConnectionFactory factory, IClockService clock) : ITok
         DateTime now = _clock.GetUtcNow();
 
         const string sql = @"
-INSERT INTO tokenset (Provider, ProviderUserId, RefreshTokenEnc, Scope, AccessExpiresAt, UpdatedAt)
-VALUES (@provider, @puid, @refresh, @scope, @accessExp, @updatedAt);
-SELECT LAST_INSERT_ID();";
+                            INSERT INTO tokenset (Provider, ProviderUserId, RefreshTokenEnc, Scope, AccessExpiresAt, UpdatedAt)
+                            VALUES (@provider, @puid, @refresh, @scope, @accessExp, @updatedAt);
+                            SELECT LAST_INSERT_ID();";
 
-        MySqlConnection conn = _factory.Create();
-        try
-        {
-            await conn.OpenAsync();
-            MySqlCommand cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("@provider", provider);
-            cmd.Parameters.AddWithValue("@puid", providerUserId);
-            cmd.Parameters.AddWithValue("@refresh", refreshTokenEnc);
-            cmd.Parameters.AddWithValue("@scope", scope);
-            cmd.Parameters.AddWithValue("@accessExp", accessExpiresAt);
-            cmd.Parameters.AddWithValue("@updatedAt", now);
+        await using DbConnection conn = await _factory.CreateOpenAsync(ct);
+        await using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        DbParameter paramProvider = cmd.CreateParameter();
+        paramProvider.ParameterName = "@provider";
+        paramProvider.Value = provider;
+        cmd.Parameters.Add(paramProvider);
+        DbParameter paramPuid = cmd.CreateParameter();
+        paramPuid.ParameterName = "@puid";
+        paramPuid.Value = providerUserId;
+        cmd.Parameters.Add(paramPuid);
+        DbParameter paramRefresh = cmd.CreateParameter();
+        paramRefresh.ParameterName = "@refresh";
+        paramRefresh.Value = refreshTokenEnc;
+        cmd.Parameters.Add(paramRefresh);
+        DbParameter paramScope = cmd.CreateParameter();
+        paramScope.ParameterName = "@scope";
+        paramScope.Value = scope;
+        cmd.Parameters.Add(paramScope);
+        DbParameter paramAccessExp = cmd.CreateParameter();
+        paramAccessExp.ParameterName = "@accessExp";
+        paramAccessExp.Value = accessExpiresAt;
+        cmd.Parameters.Add(paramAccessExp);
+        DbParameter paramUpdatedAt = cmd.CreateParameter();
+        paramUpdatedAt.ParameterName = "@updatedAt";
+        paramUpdatedAt.Value = now;
+        cmd.Parameters.Add(paramUpdatedAt);
 
-            object scalar = await cmd.ExecuteScalarAsync() ?? throw new DataException("Failed to execute insert for TOKENSET.");
-            if (scalar == null || scalar == DBNull.Value)
-                throw new DataException("Failed to retrieve LAST_INSERT_ID for TOKENSET.");
+        object scalar = await cmd.ExecuteScalarAsync(ct) ?? throw new DataException("Failed to execute insert for TOKENSET.");
+        if (scalar == null || scalar == DBNull.Value)
+            throw new DataException("Failed to retrieve LAST_INSERT_ID for TOKENSET.");
 
-            bool ok = long.TryParse(Convert.ToString(scalar), out long id);
-            if (!ok || id <= 0) throw new DataException("Invalid LAST_INSERT_ID for TOKENSET.");
-            return id;
-        }
-        finally
-        {
-            await conn.CloseAsync();
-            await conn.DisposeAsync();
-        }
+        bool ok = long.TryParse(Convert.ToString(scalar), out long id);
+        if (!ok || id <= 0) throw new DataException("Invalid LAST_INSERT_ID for TOKENSET.");
+        return id;
     }
 
     /// <inheritdoc />
-    public async Task AttachToSessionAsync(long tokenSetId, string sessionId)
+    public async Task AttachToSessionAsync(long tokenSetId, string sessionId, CancellationToken ct = default)
     {
         if (tokenSetId <= 0)
             throw new ArgumentException("tokenSetId must be positive.", nameof(tokenSetId));
@@ -74,29 +84,29 @@ SELECT LAST_INSERT_ID();";
         DateTime now = _clock.GetUtcNow();
 
         const string sql = @"
-UPDATE tokenset
-SET SessionId = @sid, UpdatedAt = @updatedAt
-WHERE TokenSetId = @id";
+                            UPDATE tokenset
+                            SET SessionId = @sid, UpdatedAt = @updatedAt
+                            WHERE TokenSetId = @id";
 
-        MySqlConnection conn = _factory.Create();
-        try
-        {
-            await conn.OpenAsync();
-            MySqlCommand cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("@sid", sessionId);
-            cmd.Parameters.AddWithValue("@updatedAt", now);
-            cmd.Parameters.AddWithValue("@id", tokenSetId);
+        await using DbConnection conn = await _factory.CreateOpenAsync(ct);
+        await using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        DbParameter paramSid = cmd.CreateParameter();
+        paramSid.ParameterName = "@sid";
+        paramSid.Value = sessionId;
+        cmd.Parameters.Add(paramSid);
+        DbParameter paramUpdatedAt = cmd.CreateParameter();
+        paramUpdatedAt.ParameterName = "@updatedAt";
+        paramUpdatedAt.Value = now;
+        cmd.Parameters.Add(paramUpdatedAt);
+        DbParameter paramId = cmd.CreateParameter();
+        paramId.ParameterName = "@id";
+        paramId.Value = tokenSetId;
+        cmd.Parameters.Add(paramId);
 
-            int affected = await cmd.ExecuteNonQueryAsync();
-            if (affected != 1)
-                throw new DataException("Unexpected number of rows updated for TOKENSET.AttachToSession.");
-        }
-        finally
-        {
-            await conn.CloseAsync();
-            await conn.DisposeAsync();
-        }
+        int affected = await cmd.ExecuteNonQueryAsync(ct);
+        if (affected != 1)
+            throw new DataException("Unexpected number of rows updated for TOKENSET.AttachToSession.");
     }
 
     /// <inheritdoc />
@@ -106,23 +116,25 @@ WHERE TokenSetId = @id";
             throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
 
         const string sql = @"
-SELECT TokenSetId, Provider, ProviderUserId, RefreshTokenEnc, Scope, AccessExpiresAt, UpdatedAt, SessionId
-FROM tokenset
-WHERE SessionId = @sid
-LIMIT 1";
+                            SELECT TokenSetId, Provider, ProviderUserId, RefreshTokenEnc, Scope, AccessExpiresAt, UpdatedAt, SessionId
+                            FROM tokenset
+                            WHERE SessionId = @sid
+                            LIMIT 1";
 
-        await using MySqlConnection conn = _factory.Create();
-        await conn.OpenAsync();
-        await using MySqlCommand cmd = conn.CreateCommand();
+        TokenSet? result = null;
+
+        await using DbConnection conn = await _factory.CreateOpenAsync();
+        await using DbCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@sid", sessionId);
+        DbParameter paramSid = cmd.CreateParameter();
+        paramSid.ParameterName = "@sid";
+        paramSid.Value = sessionId;
+        cmd.Parameters.Add(paramSid);
 
-        await using MySqlDataReader reader = await cmd.ExecuteReaderAsync();
-        if (!reader.HasRows) return null;
-
+        await using DbDataReader reader = await cmd.ExecuteReaderAsync();
         if (await reader.ReadAsync())
         {
-            return new TokenSet(
+            result = new TokenSet(
                 tokenSetId: reader.GetInt64("TokenSetId"),
                 provider: reader.GetString("Provider"),
                 providerUserId: reader.GetString("ProviderUserId"),
@@ -135,27 +147,29 @@ LIMIT 1";
             );
         }
 
-        return null;
+        return result;
     }
 
     /// <inheritdoc />
-    public async Task DeleteBySessionAsync(string sessionId)
+    public async Task DeleteBySessionAsync(string sessionId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
             throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
 
         const string sql = "delete from tokenset where SessionId = @sid";
 
-        await using var conn = _factory.Create();
-        await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
+        await using DbConnection conn = await _factory.CreateOpenAsync(ct);
+        await using DbCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@sid", sessionId);
-        await cmd.ExecuteNonQueryAsync();
+        DbParameter paramSid = cmd.CreateParameter();
+        paramSid.ParameterName = "@sid";
+        paramSid.Value = sessionId;
+        cmd.Parameters.Add(paramSid);
+        await cmd.ExecuteNonQueryAsync(ct);
     }
 
     /// <inheritdoc />
-    public async Task DeleteBySessionAsync(string sessionId, MySqlConnection conn, MySqlTransaction tx)
+    public async Task DeleteBySessionAsync(string sessionId, DbConnection conn, DbTransaction tx)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
             throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
@@ -164,13 +178,24 @@ LIMIT 1";
 
         const string sql = "delete from tokenset where SessionId = @sid";
 
-        await using var cmd = conn.CreateCommand();
+        await using DbCommand cmd = conn.CreateCommand();
         cmd.Transaction = tx;
         cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@sid", sessionId);
+        DbParameter paramSid = cmd.CreateParameter();
+        paramSid.ParameterName = "@sid";
+        paramSid.Value = sessionId;
+        cmd.Parameters.Add(paramSid);
         await cmd.ExecuteNonQueryAsync();
     }
 
+    /// <summary>
+    /// Asynchronously updates the token set after a refresh operation for the given session.
+    /// </summary>
+    /// <param name="sessionId">The session identifier.</param>
+    /// <param name="refreshToken">The new encrypted refresh token.</param>
+    /// <param name="newAccessExpiresAtUtc">The new access token expiration date in UTC.</param>
+    /// <param name="ct">The cancellation token.</param>
+    /// <returns>A task representing the asynchronous update operation.</returns>
     public async Task UpdateAfterRefreshAsync(string sessionId, string refreshToken, DateTime newAccessExpiresAtUtc,
         CancellationToken ct = default)
     {
@@ -182,30 +207,33 @@ LIMIT 1";
         DateTime now = _clock.GetUtcNow();
 
         const string sql = @"
-update tokenset
-set RefreshTokenEnc = @refresh,
-    AccessExpiresAt = @accessExp,
-    UpdatedAt       = @updatedAt
-where SessionId = @sid
-limit 1;";
+                            update tokenset
+                            set RefreshTokenEnc = @refresh,
+                                AccessExpiresAt = @accessExp,
+                                UpdatedAt       = @updatedAt
+                            where SessionId = @sid
+                            limit 1;";
 
-        MySqlConnection conn = _factory.Create();
-        try
-        {
-            await conn.OpenAsync(ct);
-            MySqlCommand cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("@refresh", refreshToken);
-            cmd.Parameters.AddWithValue("@accessExp", newAccessExpiresAtUtc);
-            cmd.Parameters.AddWithValue("@updatedAt", now);
-            cmd.Parameters.AddWithValue("@sid", sessionId);
+        await using DbConnection conn = await _factory.CreateOpenAsync(ct);
+        await using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        DbParameter paramRefresh = cmd.CreateParameter();
+        paramRefresh.ParameterName = "@refresh";
+        paramRefresh.Value = refreshToken;
+        cmd.Parameters.Add(paramRefresh);
+        DbParameter paramAccessExp = cmd.CreateParameter();
+        paramAccessExp.ParameterName = "@accessExp";
+        paramAccessExp.Value = newAccessExpiresAtUtc;
+        cmd.Parameters.Add(paramAccessExp);
+        DbParameter paramUpdatedAt = cmd.CreateParameter();
+        paramUpdatedAt.ParameterName = "@updatedAt";
+        paramUpdatedAt.Value = now;
+        cmd.Parameters.Add(paramUpdatedAt);
+        DbParameter paramSid = cmd.CreateParameter();
+        paramSid.ParameterName = "@sid";
+        paramSid.Value = sessionId;
+        cmd.Parameters.Add(paramSid);
 
-            await cmd.ExecuteNonQueryAsync(ct);
-        }
-        finally
-        {
-            await conn.CloseAsync();
-            await conn.DisposeAsync();
-        }
+        await cmd.ExecuteNonQueryAsync(ct);
     }
 }

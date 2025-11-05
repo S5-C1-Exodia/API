@@ -1,8 +1,8 @@
-﻿using Api.Managers.InterfacesDao;
+﻿using System.Data;
+using System.Data.Common;
+using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
 using Api.Models;
-using MySqlConnector;
-using System.Data;
 
 namespace API.DAO;
 
@@ -31,29 +31,37 @@ public class PkceDao : IPkceDao
             throw new ArgumentNullException(nameof(entry));
 
         const string sql = @"
-    INSERT INTO pkceentry (State, CodeVerifier, CodeChallenge, ExpiresAt)
-    VALUES (@state, @verifier, @challenge, @exp)";
+        INSERT INTO pkceentry (State, CodeVerifier, CodeChallenge, ExpiresAt)
+        VALUES (@state, @verifier, @challenge, @exp)";
 
-        MySqlConnection conn = _factory.Create();
-        try
-        {
-            await conn.OpenAsync();
-            MySqlCommand cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("@state", entry.State);
-            cmd.Parameters.AddWithValue("@verifier", entry.CodeVerifier);
-            cmd.Parameters.AddWithValue("@challenge", entry.CodeChallenge);
-            cmd.Parameters.AddWithValue("@exp", entry.ExpiresAt);
-            int affected = await cmd.ExecuteNonQueryAsync();
-            if (affected != 1)
-                throw new DataException("Unexpected number of rows inserted for PKCEENTRY."); 
-        }
-        
-        finally
-        {
-            await conn.CloseAsync();
-            await conn.DisposeAsync();
-        }
+        var ct = CancellationToken.None;
+        await using DbConnection conn = await _factory.CreateOpenAsync(ct);
+        await using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+
+        var paramState = cmd.CreateParameter();
+        paramState.ParameterName = "@state";
+        paramState.Value = entry.State;
+        cmd.Parameters.Add(paramState);
+
+        var paramVerifier = cmd.CreateParameter();
+        paramVerifier.ParameterName = "@verifier";
+        paramVerifier.Value = entry.CodeVerifier;
+        cmd.Parameters.Add(paramVerifier);
+
+        var paramChallenge = cmd.CreateParameter();
+        paramChallenge.ParameterName = "@challenge";
+        paramChallenge.Value = entry.CodeChallenge;
+        cmd.Parameters.Add(paramChallenge);
+
+        var paramExp = cmd.CreateParameter();
+        paramExp.ParameterName = "@exp";
+        paramExp.Value = entry.ExpiresAt;
+        cmd.Parameters.Add(paramExp);
+
+        int affected = await cmd.ExecuteNonQueryAsync(ct);
+        if (affected != 1)
+            throw new DataException("Unexpected number of rows inserted for PKCEENTRY.");
     }
 
     /// <inheritdoc />
@@ -68,42 +76,29 @@ public class PkceDao : IPkceDao
     WHERE State = @state
     LIMIT 1";
 
-        MySqlConnection conn = _factory.Create();
-        try
+        var ct = CancellationToken.None;
+        await using DbConnection conn = await _factory.CreateOpenAsync(ct);
+        PkceEntry? result = null;
+
+        await using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+
+        var paramState = cmd.CreateParameter();
+        paramState.ParameterName = "@state";
+        paramState.Value = state;
+        cmd.Parameters.Add(paramState);
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        if (await reader.ReadAsync())
         {
-            await conn.OpenAsync();
-            MySqlCommand cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("@state", state);
-
-            MySqlDataReader reader = await cmd.ExecuteReaderAsync();
-            try
-            {
-                if (!reader.HasRows)
-                    return null;
-
-                if (await reader.ReadAsync())
-                {
-                    string s = reader.GetString("State");
-                    string verifier = reader.GetString("CodeVerifier");
-                    string challenge = reader.GetString("CodeChallenge");
-                    DateTime exp = reader.GetDateTime("ExpiresAt");
-                    PkceEntry entry = new PkceEntry(s, verifier, challenge, exp);
-                    return entry;
-                }
-
-                return null;
-            }
-            finally
-            {
-                await reader.DisposeAsync();
-            }
+            string s = reader.GetString("State");
+            string verifier = reader.GetString("CodeVerifier");
+            string challenge = reader.GetString("CodeChallenge");
+            DateTime exp = reader.GetDateTime("ExpiresAt");
+            result = new PkceEntry(s, verifier, challenge, exp);
         }
-        finally
-        {
-            await conn.CloseAsync();
-            await conn.DisposeAsync();
-        }
+
+        return result;
     }
 
     /// <inheritdoc />
@@ -116,19 +111,16 @@ public class PkceDao : IPkceDao
 
         const string sql = @"DELETE FROM pkceentry WHERE State = @state";
 
-        MySqlConnection conn = _factory.Create();
-        try
-        {
-            await conn.OpenAsync();
-            MySqlCommand cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Parameters.AddWithValue("@state", state);
-            await cmd.ExecuteNonQueryAsync();
-        }
-        finally
-        {
-            await conn.CloseAsync();
-            await conn.DisposeAsync();
-        }
+        var ct = CancellationToken.None;
+        await using DbConnection conn = await _factory.CreateOpenAsync(ct);
+        await using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+
+        var paramState = cmd.CreateParameter();
+        paramState.ParameterName = "@state";
+        paramState.Value = state;
+        cmd.Parameters.Add(paramState);
+
+        await cmd.ExecuteNonQueryAsync(ct);
     }
 }

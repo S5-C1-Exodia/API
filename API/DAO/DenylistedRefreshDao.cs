@@ -1,6 +1,9 @@
-﻿using Api.Managers.InterfacesDao;
+﻿using System;
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
+using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
-using MySqlConnector;
 
 namespace API.DAO;
 
@@ -29,19 +32,27 @@ public class DenylistedRefreshDao : IDenylistedRefreshDao
             throw new ArgumentException("refreshHash cannot be null or empty.", nameof(refreshHash));
 
         const string sql = @"
-        SELECT 1
-        FROM denylistedrefresh
-        WHERE RefreshHash = @h AND ExpiresAt > @now
-        LIMIT 1;";
+            SELECT 1
+            FROM denylistedrefresh
+            WHERE RefreshHash = @h AND ExpiresAt > @now
+            LIMIT 1;";
 
-        await using MySqlConnection conn = _factory.Create();
-        await conn.OpenAsync();
-        await using MySqlCommand cmd = conn.CreateCommand();
+        var ct = CancellationToken.None;
+        await using DbConnection conn = await _factory.CreateOpenAsync(ct);
+        await using DbCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@h", refreshHash);
-        cmd.Parameters.AddWithValue("@now", nowUtc);
 
-        var obj = await cmd.ExecuteScalarAsync();
+        var paramH = cmd.CreateParameter();
+        paramH.ParameterName = "@h";
+        paramH.Value = refreshHash;
+        cmd.Parameters.Add(paramH);
+
+        var paramNow = cmd.CreateParameter();
+        paramNow.ParameterName = "@now";
+        paramNow.Value = nowUtc;
+        cmd.Parameters.Add(paramNow);
+
+        var obj = await cmd.ExecuteScalarAsync(ct);
         return obj != null && obj != DBNull.Value;
     }
 
@@ -52,21 +63,38 @@ public class DenylistedRefreshDao : IDenylistedRefreshDao
             throw new ArgumentException("refreshHash cannot be null or empty.", nameof(refreshHash));
 
         const string sql = @"
-        INSERT INTO denylistedrefresh(RefreshHash, Reason, AddedAt, ExpiresAt)
-        VALUES (@h, @r, @added, @exp)
-        ON DUPLICATE KEY UPDATE
-            Reason = VALUES(Reason),
-            AddedAt = VALUES(AddedAt),
-            ExpiresAt = VALUES(ExpiresAt);";
+            INSERT INTO denylistedrefresh(RefreshHash, Reason, AddedAt, ExpiresAt)
+            VALUES (@h, @r, @added, @exp)
+            ON DUPLICATE KEY UPDATE
+                Reason = VALUES(Reason),
+                AddedAt = VALUES(AddedAt),
+                ExpiresAt = VALUES(ExpiresAt);";
 
-        await using MySqlConnection conn = _factory.Create();
-        await conn.OpenAsync();
-        await using MySqlCommand cmd = conn.CreateCommand();
+        var ct = CancellationToken.None;
+        await using DbConnection conn = await _factory.CreateOpenAsync(ct);
+        await using DbCommand cmd = conn.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.AddWithValue("@h", refreshHash);
-        cmd.Parameters.AddWithValue("@r", reason ?? "logout");
-        cmd.Parameters.AddWithValue("@added", addedAtUtc);
-        cmd.Parameters.AddWithValue("@exp", expiresAtUtc);
-        await cmd.ExecuteNonQueryAsync();
+
+        var paramH = cmd.CreateParameter();
+        paramH.ParameterName = "@h";
+        paramH.Value = refreshHash;
+        cmd.Parameters.Add(paramH);
+
+        var paramR = cmd.CreateParameter();
+        paramR.ParameterName = "@r";
+        paramR.Value = reason ?? "logout";
+        cmd.Parameters.Add(paramR);
+
+        var paramAdded = cmd.CreateParameter();
+        paramAdded.ParameterName = "@added";
+        paramAdded.Value = addedAtUtc;
+        cmd.Parameters.Add(paramAdded);
+
+        var paramExp = cmd.CreateParameter();
+        paramExp.ParameterName = "@exp";
+        paramExp.Value = expiresAtUtc;
+        cmd.Parameters.Add(paramExp);
+
+        await cmd.ExecuteNonQueryAsync(ct);
     }
 }
