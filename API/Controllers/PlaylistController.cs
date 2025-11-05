@@ -13,7 +13,7 @@ namespace API.Controllers
     [ApiController]
     public class PlaylistController : ControllerBase
     {
-        private IPlaylistManager _playlistManager;
+        private readonly IPlaylistManager _playlistManager;
 
         /// <summary>
         /// Constructor

@@ -166,15 +166,13 @@ public class AuthManagerTests
             "at",
             "rt",
             _clock.Object.GetUtcNow().AddHours(1),
-            "user123",
-            "scope"
+            "scope",
+            "user123"
         );
 
         _oauth.Setup(o => o.ExchangeCodeForTokensAsync("codeok", "https://cb", "verifier123"))
             .ReturnsAsync(tokens);
 
-        // ⚠️ Ordre aligné sur l'interface:
-        // SaveByStateAsync(string state, string provider, string providerUserId, string refreshToken, string scope, DateTime accessExpiresAt, CancellationToken ct = default)
         _tokenDao.Setup(t => t.SaveByStateAsync(
                     "goodstate",
                     "spotify",

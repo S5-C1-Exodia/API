@@ -21,8 +21,8 @@ Integration test: Playlist Preferences (US 1.2)
 """
 
 import sys
-import json
 import time
+
 import requests
 
 

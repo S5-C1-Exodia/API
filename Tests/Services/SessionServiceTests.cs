@@ -30,7 +30,7 @@ namespace Tests.Services
         public async Task GetSessionAsync_ShouldCallDao()
         {
             var expected = new AppSession("sid", "dev", DateTime.UtcNow, DateTime.UtcNow, DateTime.UtcNow.AddMinutes(1));
-            _dao.Setup(d => d.GetAsync("sid")).ReturnsAsync(expected);
+            _dao.Setup(d => d.GetAsync("sid", CancellationToken.None)).ReturnsAsync(expected);
             var svc = new SessionService(_dao.Object, _ids.Object);
 
             var res = await svc.GetSessionAsync("sid");
@@ -45,7 +45,7 @@ namespace Tests.Services
 
             await svc.DeleteAsync("sid");
 
-            _dao.Verify(d => d.DeleteAsync("sid"), Times.Once);
+            _dao.Verify(d => d.DeleteAsync("sid", CancellationToken.None), Times.Once);
         }
         
     }
