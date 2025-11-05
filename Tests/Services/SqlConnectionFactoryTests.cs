@@ -1,4 +1,4 @@
-﻿using API.Services;
+﻿using System.Data.Common;
 using MySqlConnector;
 
 namespace Tests.Services
@@ -18,7 +18,7 @@ namespace Tests.Services
         public void Create_ShouldReturnMySqlConnection()
         {
             var factory = new SqlConnectionFactory("Server=localhost;Uid=root;Pwd=pw;Database=test;");
-            MySqlConnection conn = factory.Create();
+            DbConnection conn = factory.Create();
             Assert.NotNull(conn);
             Assert.IsType<MySqlConnection>(conn);
         }

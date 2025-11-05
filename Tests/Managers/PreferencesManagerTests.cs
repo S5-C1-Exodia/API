@@ -1,4 +1,5 @@
-﻿using API.Managers;
+﻿using System.Data.Common;
+using API.Managers;
 using Api.Managers.InterfacesDao;
 using API.Managers.InterfacesServices;
 using API.Services;
@@ -32,14 +33,21 @@ public class PreferencesManagerTests
         tokenDao.Setup(d => d.GetBySessionAsync(sessionId)).ReturnsAsync(tokenSet);
         clock.Setup(c => c.GetUtcNow()).Returns(DateTime.UtcNow);
 
-        txRunner.Setup(t => t.RunAsync(
-                    It.IsAny<Func<MySqlConnector.MySqlConnection, MySqlConnector.MySqlTransaction, Task>>(),
+        txRunner
+            .Setup(t => t.RunAsync(
+                    It.IsAny<Func<DbConnection, DbTransaction, Task>>(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .Returns(Task.CompletedTask);
 
-        var manager = new PreferencesManager(selectionDao.Object, tokenDao.Object, txRunner.Object, new AuditService(), clock.Object);
+        var manager = new PreferencesManager(
+            selectionDao.Object,
+            tokenDao.Object,
+            txRunner.Object,
+            new AuditService(),
+            clock.Object
+        );
 
         await manager.ReplaceSelectionAsync(sessionId, playlistIds);
 
@@ -70,26 +78,35 @@ public class PreferencesManagerTests
         tokenDao.Setup(d => d.GetBySessionAsync(sessionId)).ReturnsAsync(tokenSet);
         clock.Setup(c => c.GetUtcNow()).Returns(DateTime.UtcNow);
 
-        txRunner.Setup(t => t.RunAsync(
-                    It.IsAny<Func<MySqlConnector.MySqlConnection, MySqlConnector.MySqlTransaction, Task>>(),
+        txRunner
+            .Setup(t => t.RunAsync(
+                    It.IsAny<Func<DbConnection, DbTransaction, Task>>(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .Returns(Task.CompletedTask);
 
-        selectionDao.Setup(d => d.BulkInsertIfNotExistsAsync(
+        // Adapter la signature à la version refactorée du DAO (DbConnection/DbTransaction)
+        selectionDao
+            .Setup(d => d.BulkInsertIfNotExistsAsync(
                     sessionId,
                     "spotify",
                     "user",
                     playlistIds,
                     It.IsAny<DateTime>(),
-                    It.IsAny<MySqlConnector.MySqlConnection>(),
-                    It.IsAny<MySqlConnector.MySqlTransaction>()
+                    It.IsAny<DbConnection>(),
+                    It.IsAny<DbTransaction>()
                 )
             )
             .ReturnsAsync(2);
 
-        var manager = new PreferencesManager(selectionDao.Object, tokenDao.Object, txRunner.Object, new AuditService(), clock.Object);
+        var manager = new PreferencesManager(
+            selectionDao.Object,
+            tokenDao.Object,
+            txRunner.Object,
+            new AuditService(),
+            clock.Object
+        );
 
         await manager.AddToSelectionAsync(sessionId, playlistIds);
 
@@ -105,7 +122,13 @@ public class PreferencesManagerTests
         var clock = new Mock<IClockService>();
 
         var sessionId = "session";
-        var manager = new PreferencesManager(selectionDao.Object, tokenDao.Object, txRunner.Object, new AuditService(), clock.Object);
+        var manager = new PreferencesManager(
+            selectionDao.Object,
+            tokenDao.Object,
+            txRunner.Object,
+            new AuditService(),
+            clock.Object
+        );
 
         await manager.AddToSelectionAsync(sessionId, null);
         await manager.AddToSelectionAsync(sessionId, new List<string>());
@@ -122,7 +145,13 @@ public class PreferencesManagerTests
         var clock = new Mock<IClockService>();
 
         var sessionId = "session";
-        var manager = new PreferencesManager(selectionDao.Object, tokenDao.Object, txRunner.Object, new AuditService(), clock.Object);
+        var manager = new PreferencesManager(
+            selectionDao.Object,
+            tokenDao.Object,
+            txRunner.Object,
+            new AuditService(),
+            clock.Object
+        );
 
         await manager.RemoveFromSelectionAsync(sessionId, null);
         await manager.RemoveFromSelectionAsync(sessionId, new List<string>());
@@ -141,7 +170,13 @@ public class PreferencesManagerTests
         var sessionId = "session";
         selectionDao.Setup(d => d.DeleteBySessionAsync(sessionId)).Returns(Task.CompletedTask);
 
-        var manager = new PreferencesManager(selectionDao.Object, tokenDao.Object, txRunner.Object, new AuditService(), clock.Object);
+        var manager = new PreferencesManager(
+            selectionDao.Object,
+            tokenDao.Object,
+            txRunner.Object,
+            new AuditService(),
+            clock.Object
+        );
 
         await manager.ClearSelectionAsync(sessionId);
 
@@ -160,7 +195,13 @@ public class PreferencesManagerTests
         var ids = new List<string> { "id1", "id2" };
         selectionDao.Setup(d => d.GetIdsBySessionAsync(sessionId)).ReturnsAsync(ids);
 
-        var manager = new PreferencesManager(selectionDao.Object, tokenDao.Object, txRunner.Object, new AuditService(), clock.Object);
+        var manager = new PreferencesManager(
+            selectionDao.Object,
+            tokenDao.Object,
+            txRunner.Object,
+            new AuditService(),
+            clock.Object
+        );
 
         var result = await manager.GetSelectionAsync(sessionId);
 
@@ -175,7 +216,13 @@ public class PreferencesManagerTests
         var txRunner = new Mock<ITransactionRunner>();
         var clock = new Mock<IClockService>();
 
-        var manager = new PreferencesManager(selectionDao.Object, tokenDao.Object, txRunner.Object, new AuditService(), clock.Object);
+        var manager = new PreferencesManager(
+            selectionDao.Object,
+            tokenDao.Object,
+            txRunner.Object,
+            new AuditService(),
+            clock.Object
+        );
 
         await Assert.ThrowsAsync<ArgumentException>(() => manager.ReplaceSelectionAsync(null, new List<string>()));
         await Assert.ThrowsAsync<ArgumentException>(() => manager.ReplaceSelectionAsync("", new List<string>()));

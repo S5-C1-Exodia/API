@@ -11,8 +11,8 @@ namespace Tests.Services
     /// </summary>
     public class SessionServiceTests
     {
-        private readonly Mock<ISessionDao> _dao = new();
-        private readonly Mock<IIdGenerator> _ids = new();
+        private readonly Mock<ISessionDao> _dao = new Mock<ISessionDao>();
+        private readonly Mock<IIdGenerator> _ids = new Mock<IIdGenerator>();
 
         [Fact]
         public async Task CreateSessionAsync_ShouldGenerateId_AndInsert()
@@ -24,8 +24,7 @@ namespace Tests.Services
             string sid = await svc.CreateSessionAsync("deviceX", now, now.AddMinutes(30));
 
             Assert.Equal("session123", sid);
-            _dao.Verify(d => d.InsertAsync(It.Is<AppSession>(s => s.SessionId == "session123")), Times.Once);
-        }
+            _dao.Verify(d => d.InsertAsync(It.Is<AppSession>(s => s.SessionId == "session123"), CancellationToken.None), Times.Once);        }
 
         [Fact]
         public async Task GetSessionAsync_ShouldCallDao()
