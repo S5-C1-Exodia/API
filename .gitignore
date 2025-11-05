@@ -117,3 +117,4 @@ API/Dockerfile
 API/Caddyfile
 docker-compose.yml
 Caddyfile
+API/appsettings.json
