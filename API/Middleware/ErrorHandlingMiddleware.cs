@@ -81,15 +81,20 @@ public class ErrorHandlingMiddleware(
     /// <returns>The correlation ID as a string.</returns>
     private string GetOrCreateCorrelationId(HttpContext context)
     {
+        string correlationId;
+
         string header = context.Request.Headers["X-Correlation-Id"]!;
         if (string.IsNullOrWhiteSpace(header))
         {
-            string generated = Guid.NewGuid().ToString("N");
-            context.Response.Headers["X-Correlation-Id"] = generated;
-            return generated;
+            correlationId = Guid.NewGuid().ToString("N");
+            context.Response.Headers["X-Correlation-Id"] = correlationId;
+        }
+        else
+        {
+            correlationId = header;
+            context.Response.Headers["X-Correlation-Id"] = correlationId;
         }
 
-        context.Response.Headers["X-Correlation-Id"] = header;
-        return header;
+        return correlationId;
     }
 }

@@ -2,7 +2,9 @@
 
 namespace API.Services;
 
-/// <inheritdoc />
+/// <summary>
+/// Service for generating unique session identifiers.
+/// </summary>
 public class IdGenerator : IIdGenerator
 {
     /// <inheritdoc />

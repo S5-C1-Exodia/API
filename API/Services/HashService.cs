@@ -4,7 +4,9 @@ using API.Managers.InterfacesServices;
 
 namespace API.Services
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Service for hashing operations.
+    /// </summary>
     public class HashService : IHashService
     {
         /// <inheritdoc />

@@ -8,80 +8,82 @@ using API.Managers.InterfacesHelpers;
 using API.Managers.InterfacesServices;
 using Api.Models;
 
-namespace API.Managers
+namespace API.Managers;
+
+/// <summary>
+/// Implements the playlist listing flow with DB cache and token refresh.
+/// Pure orchestration: no SQL (DAOs only) and no HTTP (Helpers only).
+/// </summary>
+public sealed class UserDataManager(
+    ITokenDao tokenDao,
+    IAccessTokenDao accessTokenDao,
+    IPlaylistCacheDao playlistCacheDao,
+    ISpotifyOAuthHelper spotifyOAuthHelper,
+    ISpotifyApiHelper spotifyApiHelper,
+    IClockService clock,
+    IConfigService config)
+    : IUserDataManager
 {
-    /// <summary>
-    /// Implements the playlist listing flow with DB cache and token refresh.
-    /// Pure orchestration: no SQL (DAOs only) and no HTTP (Helpers only).
-    /// </summary>
-    public sealed class UserDataManager(
-        ITokenDao tokenDao,
-        IAccessTokenDao accessTokenDao,
-        IPlaylistCacheDao playlistCacheDao,
-        ISpotifyOAuthHelper spotifyOAuthHelper,
-        ISpotifyApiHelper spotifyApiHelper,
-        IClockService clock,
-        IConfigService config)
-        : IUserDataManager
+    private readonly ITokenDao _tokenDao = tokenDao ?? throw new ArgumentNullException(nameof(tokenDao));
+
+    private readonly IAccessTokenDao _accessTokenDao =
+        accessTokenDao ?? throw new ArgumentNullException(nameof(accessTokenDao));
+
+    private readonly IPlaylistCacheDao _playlistCacheDao =
+        playlistCacheDao ?? throw new ArgumentNullException(nameof(playlistCacheDao));
+
+    private readonly ISpotifyOAuthHelper _spotifyOAuthHelper =
+        spotifyOAuthHelper ?? throw new ArgumentNullException(nameof(spotifyOAuthHelper));
+
+    private readonly ISpotifyApiHelper _spotifyApiHelper =
+        spotifyApiHelper ?? throw new ArgumentNullException(nameof(spotifyApiHelper));
+
+    private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+    private readonly IConfigService _config = config ?? throw new ArgumentNullException(nameof(config));
+
+    /// <inheritdoc />
+    public async Task<PlaylistPageDto> GetPlaylistsAsync(string sessionId, string? pageToken,
+        CancellationToken ct = default)
     {
-        private readonly ITokenDao _tokenDao = tokenDao ?? throw new ArgumentNullException(nameof(tokenDao));
-        private readonly IAccessTokenDao _accessTokenDao = accessTokenDao ?? throw new ArgumentNullException(nameof(accessTokenDao));
-        private readonly IPlaylistCacheDao _playlistCacheDao = playlistCacheDao ?? throw new ArgumentNullException(nameof(playlistCacheDao));
-        private readonly ISpotifyOAuthHelper _spotifyOAuthHelper = spotifyOAuthHelper ?? throw new ArgumentNullException(nameof(spotifyOAuthHelper));
-        private readonly ISpotifyApiHelper _spotifyApiHelper = spotifyApiHelper ?? throw new ArgumentNullException(nameof(spotifyApiHelper));
-        private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        private readonly IConfigService _config = config ?? throw new ArgumentNullException(nameof(config));
+        if (string.IsNullOrWhiteSpace(sessionId))
+            throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
 
-        /// <inheritdoc />
-        public async Task<PlaylistPageDto> GetPlaylistsAsync(string sessionId, string? pageToken,
-            CancellationToken ct = default)
+        DateTime nowUtc = _clock.GetUtcNow();
+        string normalizedPageToken = pageToken ?? string.Empty;
+
+        TokenSet? tokenSet = await _tokenDao.GetBySessionAsync(sessionId);
+        if (tokenSet is null)
+            throw new MissingTokenSetException("No TokenSet associated with the given session.");
+
+        string providerUserId = tokenSet.ProviderUserId;
+        string? accessToken = await _accessTokenDao.GetValidBySessionAsync(sessionId, nowUtc, ct);
+
+        if (string.IsNullOrEmpty(accessToken))
         {
-            if (string.IsNullOrWhiteSpace(sessionId))
-                throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
+            string refreshToken = tokenSet.RefreshToken;
+            RefreshResult refreshed = await _spotifyOAuthHelper.RefreshTokensAsync(refreshToken, ct);
+            accessToken = refreshed.AccessToken;
 
-            DateTime nowUtc = _clock.GetUtcNow();
+            await _accessTokenDao.UpsertAsync(sessionId, accessToken, refreshed.AccessExpiresAtUtc, nowUtc, ct);
 
-            // Normalize page token for DB keys (first page = empty string; never NULL in DB).
-            string normalizedPageToken = pageToken ?? string.Empty;
+            string effectiveRefresh = string.IsNullOrEmpty(refreshed.NewRefreshToken)
+                ? refreshToken
+                : refreshed.NewRefreshToken!;
+            await _tokenDao.UpdateAfterRefreshAsync(sessionId, effectiveRefresh, refreshed.AccessExpiresAtUtc, ct);
+        }
 
-            // 1) Retrieve TokenSet for the session (401 if missing)
-            TokenSet? tokenSet = await _tokenDao.GetBySessionAsync(sessionId);
-            if (tokenSet is null)
-                throw new MissingTokenSetException("No TokenSet associated with the given session.");
+        PlaylistPageDto result;
+        string? cachedJson = await _playlistCacheDao.GetPageJsonAsync(sessionId, normalizedPageToken, nowUtc, ct);
 
-            string providerUserId = tokenSet.ProviderUserId;
+        if (!string.IsNullOrEmpty(cachedJson))
+        {
+            PlaylistPageDto? cachedPage = JsonSerializer.Deserialize<PlaylistPageDto>(cachedJson);
+            result = cachedPage ?? new PlaylistPageDto();
+        }
+        else
+        {
+            PlaylistPageDto livePage = await _spotifyApiHelper.GetPlaylistsAsync(accessToken, normalizedPageToken, ct);
 
-            // 2) Try to get a valid access token for this session; refresh if absent/expired
-            string? accessToken = await _accessTokenDao.GetValidBySessionAsync(sessionId, nowUtc, ct);
-            if (string.IsNullOrEmpty(accessToken))
-            {
-                string refreshToken = tokenSet.RefreshToken;
-
-                RefreshResult refreshed = await _spotifyOAuthHelper.RefreshTokensAsync(refreshToken, ct);
-                accessToken = refreshed.AccessToken;
-
-                // Persist short-lived access token
-                await _accessTokenDao.UpsertAsync(sessionId, accessToken, refreshed.AccessExpiresAtUtc, nowUtc, ct);
-
-                // If refresh token rotated, update TokenSet; always mirror latest access expiry
-                string effectiveRefresh = string.IsNullOrEmpty(refreshed.NewRefreshToken)
-                    ? refreshToken
-                    : refreshed.NewRefreshToken!;
-                await _tokenDao.UpdateAfterRefreshAsync(sessionId, effectiveRefresh, refreshed.AccessExpiresAtUtc, ct);
-            }
-
-            // 3) Cache lookup (session + normalized page token)
-            string? cachedJson = await _playlistCacheDao.GetPageJsonAsync(sessionId, normalizedPageToken, nowUtc, ct);
-            if (!string.IsNullOrEmpty(cachedJson))
-            {
-                PlaylistPageDto? cachedPage = JsonSerializer.Deserialize<PlaylistPageDto>(cachedJson);
-                return cachedPage ?? new PlaylistPageDto();
-            }
-
-            // 4) Cache miss → call Spotify (Spotify receives the original pageToken, not normalized)
-            PlaylistPageDto livePage = await _spotifyApiHelper.GetPlaylistsAsync(accessToken!, normalizedPageToken, ct);
-
-            // 5) Persist page with TTL (keyed by normalized token)
             int ttlMinutes = _config.GetPlaylistCacheTtlMinutes();
             DateTime expiresAtUtc = nowUtc.AddMinutes(ttlMinutes);
             string rawJson = JsonSerializer.Serialize(livePage);
@@ -96,7 +98,9 @@ namespace API.Managers
                 ct
             );
 
-            return livePage;
+            result = livePage;
         }
+
+        return result;
     }
 }

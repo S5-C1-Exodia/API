@@ -2,6 +2,11 @@
 
 namespace API.Services;
 
+/// <summary>
+/// Service responsible for managing configuration values related to Spotify and application settings.
+/// Provides methods to retrieve various configuration parameters such as Spotify API endpoints, 
+/// client credentials, and TTL (Time-To-Live) values for sessions and caches.
+/// </summary>
 public class ConfigService : IConfigService
 {
     private readonly string _spotifyBaseUrl;
@@ -14,7 +19,21 @@ public class ConfigService : IConfigService
     private readonly string _deeplinkSchemeHost;
     private readonly int _pkceTtlMinutes;
     private readonly int _sessionTtlMinutes;
-    
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConfigService"/> class with the specified configuration values.
+    /// </summary>
+    /// <param name="spotifyBaseUrl">The base URL for the Spotify API.</param>
+    /// <param name="spotifyClientId">The client ID for the Spotify application.</param>
+    /// <param name="spotifyRedirectUri">The redirect URI for Spotify authentication.</param>
+    /// <param name="spotifyAuthorizeEndpoint">The endpoint for Spotify authorization.</param>
+    /// <param name="spotifyTokenEndpoint">The endpoint for Spotify token exchange.</param>
+    /// <param name="spotifyPlaylistPageSize">The maximum number of playlists per page (1-50).</param>
+    /// <param name="spotifyCacheTtlMinutes">The cache TTL (Time-To-Live) in minutes for Spotify playlists.</param>
+    /// <param name="deeplinkSchemeHost">The host for the deeplink scheme.</param>
+    /// <param name="pkceTtlMinutes">The TTL in minutes for PKCE (Proof Key for Code Exchange) codes.</param>
+    /// <param name="sessionTtlMinutes">The TTL in minutes for user sessions.</param>
+    /// <exception cref="ArgumentException">Thrown if any required parameter is null, empty, or invalid.</exception>
     public ConfigService(
         string spotifyBaseUrl,
         string spotifyClientId,
@@ -53,7 +72,7 @@ public class ConfigService : IConfigService
 
         if (spotifyCacheTtlMinutes <= 0)
             throw new ArgumentException("spotifyCacheTtlMinutes must be positive.", nameof(spotifyCacheTtlMinutes));
-        
+
         _spotifyBaseUrl = spotifyBaseUrl;
         _spotifyPlaylistPageSize = spotifyPlaylistPageSize;
         _spotifyCacheTtlMinutes = spotifyCacheTtlMinutes;
@@ -66,33 +85,15 @@ public class ConfigService : IConfigService
         _sessionTtlMinutes = sessionTtlMinutes;
     }
 
-    /// <inheritdoc />
+
     public string GetSpotifyClientId() => _spotifyClientId;
-    
-    /// <inheritdoc />
     public string GetSpotifyRedirectUri() => _spotifyRedirectUri;
-    
-    /// <inheritdoc />
     public string GetSpotifyAuthorizeEndpoint() => _spotifyAuthorizeEndpoint;
-    
-    /// <inheritdoc />
     public string GetSpotifyTokenEndpoint() => _spotifyTokenEndpoint;
-    
-    /// <inheritdoc />
     public string GetDeeplinkSchemeHost() => _deeplinkSchemeHost;
-    
-    /// <inheritdoc />
     public int GetPkceTtlMinutes() => _pkceTtlMinutes;
-    
-    /// <inheritdoc />
     public int GetSessionTtlMinutes() => _sessionTtlMinutes;
-    
-    /// <inheritdoc />
     public string GetSpotifyApiBaseUrl() => _spotifyBaseUrl;
-    
-    /// <inheritdoc />
     public int GetSpotifyPlaylistsPageSize() => _spotifyPlaylistPageSize;
-    
-    /// <inheritdoc />
     public int GetPlaylistCacheTtlMinutes() => _spotifyCacheTtlMinutes;
 }

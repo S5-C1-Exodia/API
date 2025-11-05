@@ -24,11 +24,11 @@ public sealed class PreferencesManager(
     private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
 
     /// <inheritdoc />
-    public async Task ReplaceSelectionAsync(string sessionId, IReadOnlyCollection<string> playlistIds,
+    public async Task ReplaceSelectionAsync(string sessionId, IReadOnlyCollection<string>? playlistIds,
         CancellationToken ct = default)
     {
         EnsureSession(sessionId);
-        playlistIds ??= Array.Empty<string>();
+        playlistIds ??= [];
 
         var tokenSet = await _tokenDao.GetBySessionAsync(sessionId)
                        ?? throw new InvalidOperationException("No TokenSet for the given session.");
@@ -56,34 +56,32 @@ public sealed class PreferencesManager(
         CancellationToken ct = default)
     {
         EnsureSession(sessionId);
-        if (playlistIds is null || playlistIds.Count == 0)
-        {
-            _audit.Log(sessionId, "AddToSelection", "added=0");
-            return;
-        }
-
-        var tokenSet = await _tokenDao.GetBySessionAsync(sessionId)
-                       ?? throw new InvalidOperationException("No TokenSet for the given session.");
-        string provider = "spotify";
-        string providerUserId = tokenSet.ProviderUserId ?? throw new InvalidOperationException("Missing ProviderUserId.");
-        DateTime now = _clock.GetUtcNow();
 
         int inserted = 0;
-        await _txRunner.RunAsync(
-            async (conn, tx) =>
-            {
-                inserted = await _selectionDao.BulkInsertIfNotExistsAsync(
-                    sessionId,
-                    provider,
-                    providerUserId,
-                    playlistIds,
-                    now,
-                    conn,
-                    tx
-                );
-            },
-            ct
-        );
+        if (playlistIds != null && playlistIds.Count > 0)
+        {
+            var tokenSet = await _tokenDao.GetBySessionAsync(sessionId)
+                           ?? throw new InvalidOperationException("No TokenSet for the given session.");
+            string provider = "spotify";
+            string providerUserId = tokenSet.ProviderUserId ?? throw new InvalidOperationException("Missing ProviderUserId.");
+            DateTime now = _clock.GetUtcNow();
+
+            await _txRunner.RunAsync(
+                async (conn, tx) =>
+                {
+                    inserted = await _selectionDao.BulkInsertIfNotExistsAsync(
+                        sessionId,
+                        provider,
+                        providerUserId,
+                        playlistIds,
+                        now,
+                        conn,
+                        tx
+                    );
+                },
+                ct
+            );
+        }
 
         _audit.Log(sessionId, "AddToSelection", $"added={inserted}");
     }
@@ -93,17 +91,15 @@ public sealed class PreferencesManager(
         CancellationToken ct = default)
     {
         EnsureSession(sessionId);
-        if (playlistIds is null || playlistIds.Count == 0)
-        {
-            _audit.Log(sessionId, "RemoveFromSelection", "removed=0");
-            return;
-        }
 
         int removed = 0;
-        await _txRunner.RunAsync(
-            async (conn, tx) => { removed = await _selectionDao.BulkDeleteByIdsAsync(sessionId, playlistIds, conn, tx); },
-            ct
-        );
+        if (playlistIds != null && playlistIds.Count > 0)
+        {
+            await _txRunner.RunAsync(
+                async (conn, tx) => { removed = await _selectionDao.BulkDeleteByIdsAsync(sessionId, playlistIds, conn, tx); },
+                ct
+            );
+        }
 
         _audit.Log(sessionId, "RemoveFromSelection", $"removed={removed}");
     }
@@ -112,6 +108,7 @@ public sealed class PreferencesManager(
     public async Task ClearSelectionAsync(string sessionId, CancellationToken ct = default)
     {
         EnsureSession(sessionId);
+
         await _selectionDao.DeleteBySessionAsync(sessionId);
         _audit.Log(sessionId, "ClearSelection", "all cleared");
     }
@@ -120,7 +117,9 @@ public sealed class PreferencesManager(
     public async Task<List<string>> GetSelectionAsync(string sessionId, CancellationToken ct = default)
     {
         EnsureSession(sessionId);
-        return (List<string>)await _selectionDao.GetIdsBySessionAsync(sessionId);
+
+        var selection = await _selectionDao.GetIdsBySessionAsync(sessionId);
+        return (List<string>)selection;
     }
 
     private static void EnsureSession(string sessionId)
@@ -129,4 +128,3 @@ public sealed class PreferencesManager(
             throw new ArgumentException("sessionId cannot be null or empty.", nameof(sessionId));
     }
 }
-

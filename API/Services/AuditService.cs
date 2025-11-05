@@ -2,12 +2,11 @@
 
 namespace API.Services;
 
+/// <summary>
+/// Service for audit logging of authentication actions.
+/// </summary>
 public class AuditService : IAuditService
 {
-    public AuditService()
-    {
-    }
-
     public void LogAuth(string provider, string action, string details)
     {
         string p = provider ?? string.Empty;
