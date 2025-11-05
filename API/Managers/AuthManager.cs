@@ -7,6 +7,8 @@ using Api.Managers.InterfacesServices;
 using API.Managers.InterfacesServices;
 using Api.Models;
 
+namespace API.Managers;
+
 /// <summary>
 /// Handles authentication-related operations, including starting authentication flows, handling callbacks, and logging out.
 /// </summary>
@@ -39,10 +41,19 @@ public class AuthManager(
     private readonly IDeeplinkHelper _deeplink = deeplink ?? throw new ArgumentNullException(nameof(deeplink));
     private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     private readonly IConfigService _config = config ?? throw new ArgumentNullException(nameof(config));
-    private readonly IAccessTokenDao _accessTokenDao = accessTokenDao ?? throw new ArgumentNullException(nameof(accessTokenDao));
-    private readonly IPlaylistSelectionDao _playlistSelectionDao = playlistSelectionDao ?? throw new ArgumentNullException(nameof(playlistSelectionDao));
-    private readonly IPlaylistCacheDao _playlistCacheDao = playlistCacheDao ?? throw new ArgumentNullException(nameof(playlistCacheDao));
-    private readonly IUserProfileCacheDao _userProfileCacheDao = userProfileCacheDao ?? throw new ArgumentNullException(nameof(userProfileCacheDao));
+
+    private readonly IAccessTokenDao
+        _accessTokenDao = accessTokenDao ?? throw new ArgumentNullException(nameof(accessTokenDao));
+
+    private readonly IPlaylistSelectionDao _playlistSelectionDao =
+        playlistSelectionDao ?? throw new ArgumentNullException(nameof(playlistSelectionDao));
+
+    private readonly IPlaylistCacheDao _playlistCacheDao =
+        playlistCacheDao ?? throw new ArgumentNullException(nameof(playlistCacheDao));
+
+    private readonly IUserProfileCacheDao _userProfileCacheDao =
+        userProfileCacheDao ?? throw new ArgumentNullException(nameof(userProfileCacheDao));
+
     private readonly ITokenDenyListService _denylist = denylist ?? throw new ArgumentNullException(nameof(denylist));
     private readonly IHashService _hash = hash ?? throw new ArgumentNullException(nameof(hash));
     private readonly IAuditService _audit = audit ?? throw new ArgumentNullException(nameof(audit));

@@ -14,33 +14,23 @@ namespace API.Managers
     /// Implements the playlist listing flow with DB cache and token refresh.
     /// Pure orchestration: no SQL (DAOs only) and no HTTP (Helpers only).
     /// </summary>
-    public sealed class UserDataManager : IUserDataManager
+    public sealed class UserDataManager(
+        ITokenDao tokenDao,
+        IAccessTokenDao accessTokenDao,
+        IPlaylistCacheDao playlistCacheDao,
+        ISpotifyOAuthHelper spotifyOAuthHelper,
+        ISpotifyApiHelper spotifyApiHelper,
+        IClockService clock,
+        IConfigService config)
+        : IUserDataManager
     {
-        private readonly ITokenDao _tokenDao;
-        private readonly IAccessTokenDao _accessTokenDao;
-        private readonly IPlaylistCacheDao _playlistCacheDao;
-        private readonly ISpotifyOAuthHelper _spotifyOAuthHelper;
-        private readonly ISpotifyApiHelper _spotifyApiHelper;
-        private readonly IClockService _clock;
-        private readonly IConfigService _config;
-
-        public UserDataManager(
-            ITokenDao tokenDao,
-            IAccessTokenDao accessTokenDao,
-            IPlaylistCacheDao playlistCacheDao,
-            ISpotifyOAuthHelper spotifyOAuthHelper,
-            ISpotifyApiHelper spotifyApiHelper,
-            IClockService clock,
-            IConfigService config)
-        {
-            _tokenDao = tokenDao ?? throw new ArgumentNullException(nameof(tokenDao));
-            _accessTokenDao = accessTokenDao ?? throw new ArgumentNullException(nameof(accessTokenDao));
-            _playlistCacheDao = playlistCacheDao ?? throw new ArgumentNullException(nameof(playlistCacheDao));
-            _spotifyOAuthHelper = spotifyOAuthHelper ?? throw new ArgumentNullException(nameof(spotifyOAuthHelper));
-            _spotifyApiHelper = spotifyApiHelper ?? throw new ArgumentNullException(nameof(spotifyApiHelper));
-            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
-            _config = config ?? throw new ArgumentNullException(nameof(config));
-        }
+        private readonly ITokenDao _tokenDao = tokenDao ?? throw new ArgumentNullException(nameof(tokenDao));
+        private readonly IAccessTokenDao _accessTokenDao = accessTokenDao ?? throw new ArgumentNullException(nameof(accessTokenDao));
+        private readonly IPlaylistCacheDao _playlistCacheDao = playlistCacheDao ?? throw new ArgumentNullException(nameof(playlistCacheDao));
+        private readonly ISpotifyOAuthHelper _spotifyOAuthHelper = spotifyOAuthHelper ?? throw new ArgumentNullException(nameof(spotifyOAuthHelper));
+        private readonly ISpotifyApiHelper _spotifyApiHelper = spotifyApiHelper ?? throw new ArgumentNullException(nameof(spotifyApiHelper));
+        private readonly IClockService _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        private readonly IConfigService _config = config ?? throw new ArgumentNullException(nameof(config));
 
         /// <inheritdoc />
         public async Task<PlaylistPageDto> GetPlaylistsAsync(string sessionId, string? pageToken,

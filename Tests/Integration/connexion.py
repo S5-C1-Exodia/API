@@ -1,6 +1,6 @@
-﻿import json
+﻿import sys
 import webbrowser
-import sys
+
 import requests
 
 

@@ -1,32 +1,39 @@
-﻿using MySqlConnector;
+﻿using System.Data.Common;
 
 namespace API.Managers.InterfacesServices
 {
     /// <summary>
-    /// Abstraction for executing a unit of work within a MySQL transaction.
-    /// Provides a method to run asynchronous operations in a transactional context.
+    /// Abstraction for executing a unit of work within a database transaction.
+    /// Provides methods to run asynchronous operations in a transactional context,
+    /// independent of the underlying database provider.
     /// </summary>
     public interface ITransactionRunner
     {
         /// <summary>
-        /// Executes the specified asynchronous work within a MySQL transaction.
+        /// Executes the specified asynchronous work within a database transaction.
         /// </summary>
         /// <param name="work">
-        /// A function that receives a <see cref="MySqlConnection"/> and <see cref="MySqlTransaction"/>,
-        /// and performs asynchronous operations within the transaction.
+        /// A function that receives a <see cref="DbConnection"/> and a <see cref="DbTransaction"/>,
+        /// and performs asynchronous operations within the transaction scope.
         /// </param>
         /// <returns>
         /// A <see cref="Task"/> representing the asynchronous execution of the transactional work.
         /// </returns>
-        Task RunInTransaction(Func<MySqlConnection, MySqlTransaction, Task> work);
-        
-        /// <summary>
-        /// Runs the given work inside a transaction, with cancellation support.
-        /// </summary>
-        /// <param name="work">The work to be executed within the transaction.</param>
-        /// <param name="ct">A cancellation token to observe while waiting for the task to complete.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        Task RunAsync(Func<MySqlConnection, MySqlTransaction, Task> work, CancellationToken ct = default);
+        Task RunInTransaction(Func<DbConnection, DbTransaction, Task> work);
 
+        /// <summary>
+        /// Executes the specified asynchronous work within a database transaction, with cancellation support.
+        /// </summary>
+        /// <param name="work">
+        /// A function that receives a <see cref="DbConnection"/> and a <see cref="DbTransaction"/>,
+        /// and performs asynchronous operations within the transaction scope.
+        /// </param>
+        /// <param name="ct">
+        /// A <see cref="CancellationToken"/> that can be used to cancel the asynchronous operation.
+        /// </param>
+        /// <returns>
+        /// A <see cref="Task"/> representing the asynchronous execution of the transactional work.
+        /// </returns>
+        Task RunAsync(Func<DbConnection, DbTransaction, Task> work, CancellationToken ct = default);
     }
 }

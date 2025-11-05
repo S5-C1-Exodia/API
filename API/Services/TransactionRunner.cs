@@ -1,19 +1,21 @@
-﻿using API.Managers.InterfacesServices;
-using MySqlConnector;
+﻿using System.Data.Common;
+using API.Managers.InterfacesServices;
 
 namespace API.Services;
 
-/// <inheritdoc />
+/// <summary>
+/// Implementation of <see cref="ITransactionRunner"/> for MySQL database transactions.
+/// Provides methods to run asynchronous operations in a transactional context using MySQL.
+/// </summary>
 public class MySqlTransactionRunner(ISqlConnectionFactory factory) : ITransactionRunner
 {
     private readonly ISqlConnectionFactory _factory = factory ?? throw new ArgumentNullException(nameof(factory));
 
     /// <inheritdoc />
-    public async Task RunInTransaction(Func<MySqlConnection, MySqlTransaction, Task> work)
+    public async Task RunInTransaction(Func<DbConnection, DbTransaction, Task> work)
     {
-        await using var conn = _factory.Create();
-        await conn.OpenAsync();
-        await using var tx = await conn.BeginTransactionAsync();
+        await using DbConnection conn = await _factory.CreateOpenAsync();
+        await using DbTransaction tx = await conn.BeginTransactionAsync();
 
         try
         {
@@ -28,11 +30,10 @@ public class MySqlTransactionRunner(ISqlConnectionFactory factory) : ITransactio
     }
 
     /// <inheritdoc />
-    public async Task RunAsync(Func<MySqlConnection, MySqlTransaction, Task> work, CancellationToken ct = default)
+    public async Task RunAsync(Func<DbConnection, DbTransaction, Task> work, CancellationToken ct = default)
     {
-        await using var conn = _factory.Create();
-        await conn.OpenAsync(ct);
-        await using var tx = await conn.BeginTransactionAsync(ct);
+        await using DbConnection conn = await _factory.CreateOpenAsync(ct);
+        await using DbTransaction tx = await conn.BeginTransactionAsync(ct);
 
         try
         {
