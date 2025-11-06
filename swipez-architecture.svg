@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="900" viewBox="0 0 1200 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="svgtitle svgdesc">
+  <title id="svgtitle">SwipeZ - Architecture &amp; Organisation (Vue d'ensemble)</title>
+  <desc id="svgdesc">Diagramme montrant le client, les outils (Teams, Trello), les ceremonies agiles, le mobile Flutter, l'API backend, la base de donnees, le SSO OAuth2 (Spotify, Napster) et l'hebergement dockerise.</desc>
+  <defs>
+    <style><![CDATA[
+      .box { fill: #ffffff; stroke: #111111; stroke-width: 2; rx: 12; }
+      .title { font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: 700; }
+      .text { font-family: Arial, Helvetica, sans-serif; font-size: 14px; }
+      .caption { font-family: Arial, Helvetica, sans-serif; font-size: 12px; fill: #333333; }
+      .group { fill: #f6f8fa; stroke: #999999; stroke-dasharray: 6 4; }
+      .arrow { stroke: #222222; stroke-width: 2; marker-end: url(#arrow); fill: none; }
+      .link { stroke: #777777; stroke-width: 2; stroke-dasharray: 5 5; marker-end: url(#arrow); fill: none; }
+    ]]></style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#222222" />
+    </marker>
+  </defs>
+
+  <!-- Header -->
+  <text x="600" y="40" text-anchor="middle" class="title">SwipeZ - Architecture &amp; Organisation (Vue d'ensemble)</text>
+  <text x="600" y="62" text-anchor="middle" class="caption">Flux Agile - SSO OAuth2 - Flutter/Web - API .NET - DB - Docker/Nginx</text>
+
+  <!-- Client -->
+  <rect x="420" y="90" width="360" height="70" class="box"/>
+  <text x="600" y="120" text-anchor="middle" class="title">CLIENT</text>
+  <text x="600" y="140" text-anchor="middle" class="caption">Planif/Reviews - Acces Kanban</text>
+
+  <!-- Tools group -->
+  <rect x="120" y="180" width="960" height="100" class="group"/>
+  <text x="600" y="198" text-anchor="middle" class="caption">Outils de collaboration</text>
+
+  <!-- Teams -->
+  <rect x="170" y="205" width="360" height="60" class="box"/>
+  <text x="350" y="230" text-anchor="middle" class="title">Microsoft Teams</text>
+  <text x="350" y="252" text-anchor="middle" class="caption">Comms / reunions / notes</text>
+
+  <!-- Trello -->
+  <rect x="670" y="205" width="360" height="60" class="box"/>
+  <text x="850" y="230" text-anchor="middle" class="title">Trello (Kanban)</text>
+  <text x="850" y="252" text-anchor="middle" class="caption">Backlog - Doing - Done</text>
+
+  <!-- Arrows client to tools -->
+  <line x1="600" y1="160" x2="350" y2="205" class="arrow"/>
+  <line x1="600" y1="160" x2="850" y2="205" class="arrow"/>
+
+  <!-- Agile ceremonies -->
+  <rect x="120" y="310" width="960" height="110" class="group"/>
+  <text x="600" y="328" text-anchor="middle" class="caption">Cadre Agile (Scrum)</text>
+
+  <rect x="170" y="335" width="200" height="70" class="box"/>
+  <text x="270" y="362" text-anchor="middle" class="title">Sprints</text>
+  <text x="270" y="384" text-anchor="middle" class="caption">Planif - Daily - Review - Retro</text>
+
+  <rect x="470" y="335" width="260" height="70" class="box"/>
+  <text x="600" y="362" text-anchor="middle" class="title">Qualite</text>
+  <text x="600" y="384" text-anchor="middle" class="caption">Tests - CI/CD - DoD</text>
+
+  <rect x="770" y="335" width="260" height="70" class="box"/>
+  <text x="900" y="362" text-anchor="middle" class="title">Accessibilite</text>
+  <text x="900" y="384" text-anchor="middle" class="caption">WCAG 2.1 AA - ARIA - Focus</text>
+
+  <!-- Arrows from tools to ceremonies -->
+  <line x1="350" y1="265" x2="270" y2="335" class="arrow"/>
+  <line x1="850" y1="265" x2="600" y2="335" class="arrow"/>
+  <line x1="850" y1="265" x2="900" y2="335" class="arrow"/>
+
+  <!-- Product core group -->
+  <rect x="60" y="440" width="1080" height="320" class="group"/>
+  <text x="600" y="458" text-anchor="middle" class="caption">Produit &amp; Architecture technique</text>
+
+  <!-- Mobile UI -->
+  <rect x="90" y="480" width="300" height="120" class="box"/>
+  <text x="240" y="510" text-anchor="middle" class="title">Mobile UI/UX</text>
+  <text x="240" y="532" text-anchor="middle" class="caption">Flutter / Web (PWA)</text>
+  <text x="240" y="554" text-anchor="middle" class="caption">Swipe + Boutons (a11y)</text>
+
+  <!-- Backend API -->
+  <rect x="450" y="480" width="300" height="120" class="box"/>
+  <text x="600" y="510" text-anchor="middle" class="title">Backend API</text>
+  <text x="600" y="532" text-anchor="middle" class="caption">ASP.NET Core (REST)</text>
+  <text x="600" y="554" text-anchor="middle" class="caption">SOLID - Tests - OpenAPI</text>
+
+  <!-- Database -->
+  <rect x="810" y="480" width="300" height="120" class="box"/>
+  <text x="960" y="510" text-anchor="middle" class="title">Base de Donnees</text>
+  <text x="960" y="532" text-anchor="middle" class="caption">SQL (PostgreSQL/MySQL)</text>
+  <text x="960" y="554" text-anchor="middle" class="caption">Snapshots JSON - Historique</text>
+
+  <!-- Arrows between core -->
+  <line x1="390" y1="540" x2="450" y2="540" class="arrow"/>
+  <line x1="750" y1="540" x2="810" y2="540" class="arrow"/>
+
+  <!-- OAuth / SSO -->
+  <rect x="360" y="630" width="480" height="110" class="group"/>
+  <text x="600" y="648" text-anchor="middle" class="caption">SSO OAuth 2.0</text>
+
+  <rect x="390" y="655" width="180" height="65" class="box"/>
+  <text x="480" y="683" text-anchor="middle" class="title">Spotify</text>
+  <text x="480" y="703" text-anchor="middle" class="caption">Scopes / Bearer</text>
+
+  <rect x="630" y="655" width="180" height="65" class="box"/>
+  <text x="720" y="683" text-anchor="middle" class="title">Napster</text>
+  <text x="720" y="703" text-anchor="middle" class="caption">Scopes / Bearer</text>
+
+  <!-- Links to API -->
+  <line x1="540" y1="655" x2="600" y2="600" class="link"/>
+  <line x1="720" y1="655" x2="600" y2="600" class="link"/>
+
+  <!-- Hosting -->
+  <rect x="420" y="770" width="360" height="80" class="box"/>
+  <text x="600" y="800" text-anchor="middle" class="title">Hebergement</text>
+  <text x="600" y="822" text-anchor="middle" class="caption">Docker - Nginx - IUT / Perso</text>
+
+  <!-- Arrows to hosting -->
+  <line x1="600" y1="600" x2="600" y2="770" class="arrow"/>
+  <line x1="960" y1="600" x2="720" y2="770" class="arrow"/>
+  <line x1="240" y1="600" x2="480" y2="770" class="arrow"/>
+</svg>
